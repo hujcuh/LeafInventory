@@ -1,15 +1,16 @@
-package me.Percyqaz.UltimateInventory;
+package me.LeafPixel.LeafInventory;
 
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
 
-public class UltimateInventory extends JavaPlugin {
+public class LeafInventory extends JavaPlugin {
 
-    FileConfiguration config = getConfig();
 
     @Override
     public void onEnable() {
+        
+        FileConfiguration config = getConfig();
 
         boolean isPaper = false;
         try
@@ -44,10 +45,6 @@ public class UltimateInventory extends JavaPlugin {
         saveConfig();
 
         pm.registerEvents(new InventoryListener(this, config, isPaper), this);
-        if (pm.getPlugin("ChestSort") != null)
-        {
-            pm.registerEvents(new ChestSortListener(this), this);
-            this.getLogger().info("ChestSort detected, enabling compatibility support");
-        }
+
     }
 }

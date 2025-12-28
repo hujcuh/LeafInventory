@@ -4,51 +4,90 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>Percyqaz.me</groupId>
-    <artifactId>UltimateInventory</artifactId>
-    <version>1.5</version>
+    <groupId>me.LeafPixel</groupId>
+    <artifactId>LeafInventory</artifactId>
+    <version>1.0</version>
+
+
 
     <properties>
-        <maven.compiler.source>17</maven.compiler.source>
-        <maven.compiler.target>17</maven.compiler.target>
+        <mc.api.version>1.21.10-R0.1-SNAPSHOT</mc.api.version>
+        <maven.compiler.release>21</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
     </properties>
 
+
     <repositories>
         <repository>
             <id>spigot-repo</id>
-            <url>https://hub.spigotmc.org/nexus/content/repositories/snapshots/</url>
+            <url>https://hub.spigotmc.org/nexus/content/groups/public/</url>
         </repository>
+
         <repository>
             <id>papermc</id>
             <url>https://repo.papermc.io/repository/maven-public/</url>
         </repository>
-		<repository>
-			<id>jeff-media-public</id>
-			<url>https://hub.jeff-media.com/nexus/repository/jeff-media-public/</url>
-		</repository>
+
+
     </repositories>
 
     <dependencies>
+
         <dependency>
             <groupId>io.papermc.paper</groupId>
             <artifactId>paper-api</artifactId>
-            <version>1.20.1-R0.1-SNAPSHOT</version>
+            <version>1.21.10-R0.1-SNAPSHOT</version>
             <scope>provided</scope>
         </dependency>
-        <dependency>
-            <groupId>org.spigotmc</groupId>
-            <artifactId>spigot-api</artifactId>
-            <version>1.20.1-R0.1-SNAPSHOT</version>
-            <scope>provided</scope>
-        </dependency>
-		<dependency>
-			<groupId>de.jeff_media</groupId>
-			<artifactId>ChestSortAPI</artifactId>
-			<version>13.0.0-SNAPSHOT</version>
-			<scope>provided</scope>
-		</dependency>
+        
     </dependencies>
+
+
+    <profiles>
+    <!-- 默认：编译 Spigot（保证 Spigot 兼容） -->
+        <profile>
+            <id>spigot</id>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
+            <dependencies>
+                <dependency>
+                    <groupId>org.spigotmc</groupId>
+                    <artifactId>spigot-api</artifactId>
+                    <version>${mc.api.version}</version>
+                    <scope>provided</scope>
+                </dependency>
+            </dependencies>
+        </profile>
+
+  <!-- 可选：编译 Paper（当你要用 Paper 专属 API 时启用） -->
+        <profile>
+            <id>paper</id>
+            <dependencies>
+                <dependency>
+                    <groupId>io.papermc.paper</groupId>
+                    <artifactId>paper-api</artifactId>
+                    <version>${mc.api.version}</version>
+                    <scope>provided</scope>
+                </dependency>
+            </dependencies>
+        </profile>
+    </profiles>
+
+    <build>
+        <plugins>
+            <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-compiler-plugin</artifactId>
+            <version>3.14.1</version>
+            <configuration>
+                <release>${maven.compiler.release}</release>
+                <encoding>${project.build.sourceEncoding}</encoding>
+            </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
 
 </project>

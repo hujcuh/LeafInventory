@@ -1,4 +1,4 @@
-package me.Percyqaz.UltimateInventory;
+package me.LeafPixel.LeafInventory;
 
 import java.util.*;
 
@@ -14,6 +14,11 @@ import org.bukkit.event.block.Action;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.inventory.*;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.event.inventory.InventoryDragEvent;
+import org.bukkit.event.player.PlayerDropItemEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.event.player.PlayerKickEvent;
+import org.bukkit.event.player.PlayerSwapHandItemsEvent;
 import org.bukkit.inventory.*;
 import org.bukkit.inventory.meta.BlockStateMeta;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -21,12 +26,16 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
 
+import net.kyori.adventure.text.Component;
+
 public class InventoryListener implements Listener
 {
-    UltimateInventory plugin;
+    LeafInventory plugin;
     FileConfiguration config;
     boolean isPaper;
     Map<UUID, ItemStack> openShulkerBoxes = new HashMap<>();
+    // Tracks the unique lock token for the shulker item currently opened by each player
+    Map<UUID, String> openShulkerTokens = new HashMap<>();
 
     boolean enableShulkerbox;
     boolean enableEnderChest;
@@ -40,7 +49,7 @@ public class InventoryListener implements Listener
 
     boolean usePermissions;
 
-    public InventoryListener(UltimateInventory plugin, FileConfiguration config, boolean isPaper) {
+    public InventoryListener(LeafInventory plugin, FileConfiguration config, boolean isPaper) {
         this.config = config;
         this.plugin = plugin;
         this.isPaper = isPaper;
@@ -100,6 +109,16 @@ public class InventoryListener implements Listener
         }
     }
 
+    // --- MenuType API helper (recommended in Paper 1.21.4+ over the deprecated openXxx methods) ---
+    private void openMenuIfNotAlready(HumanEntity player, InventoryType legacyType, MenuType.Typed<? extends InventoryView, ?> menuType) {
+        if (player.getOpenInventory() != null && player.getOpenInventory().getTopInventory().getType() == legacyType) {
+            return;
+        }
+        InventoryView view = menuType.create(player);
+        player.openInventory(view);
+    }
+
+
     private void ShowEnderchest(HumanEntity player)
     {
         if (player.getOpenInventory().getType() == InventoryType.ENDER_CHEST)
@@ -114,77 +133,35 @@ public class InventoryListener implements Listener
         }
     }
 
-    private void ShowCraftingTable(HumanEntity player)
+        private void ShowCraftingTable(HumanEntity player)
     {
-        if (player.getOpenInventory().getType() == InventoryType.WORKBENCH)
-        {
-            return;
-        }
-
-        player.openWorkbench(null, true);
+        openMenuIfNotAlready(player, InventoryType.WORKBENCH, MenuType.CRAFTING);
     }
-
     private void ShowStoneCutter(HumanEntity player)
     {
-        if (player.getOpenInventory().getType() == InventoryType.STONECUTTER)
-        {
-            return;
-        }
-
-        player.openStonecutter(null, true);
+        openMenuIfNotAlready(player, InventoryType.STONECUTTER, MenuType.STONECUTTER);
     }
-
     private void ShowCartographyTable(HumanEntity player)
     {
-        if (player.getOpenInventory().getType() == InventoryType.CARTOGRAPHY)
-        {
-            return;
-        }
-
-        player.openCartographyTable(null, true);
+        openMenuIfNotAlready(player, InventoryType.CARTOGRAPHY, MenuType.CARTOGRAPHY_TABLE);
     }
-
     private void ShowLoom(HumanEntity player)
     {
-        if (player.getOpenInventory().getType() == InventoryType.LOOM)
-        {
-            return;
-        }
-
-        player.openLoom(null, true);
+        openMenuIfNotAlready(player, InventoryType.LOOM, MenuType.LOOM);
     }
-
     private void ShowSmithingTable(HumanEntity player)
     {
-        if (player.getOpenInventory().getType() == InventoryType.SMITHING)
-        {
-            return;
-        }
-
-        player.openSmithingTable(null, true);
+        openMenuIfNotAlready(player, InventoryType.SMITHING, MenuType.SMITHING);
     }
-
     private void ShowGrindstone(HumanEntity player)
     {
-        if (player.getOpenInventory().getType() == InventoryType.GRINDSTONE)
-        {
-            return;
-        }
-
-        player.openGrindstone(null, true);
+        openMenuIfNotAlready(player, InventoryType.GRINDSTONE, MenuType.GRINDSTONE);
     }
-
     private void ShowAnvil(HumanEntity player)
     {
-        if (player.getOpenInventory().getType() == InventoryType.ANVIL)
-        {
-            return;
-        }
-
-        player.openAnvil(null, true);
+        openMenuIfNotAlready(player, InventoryType.ANVIL, MenuType.ANVIL);
     }
-
-    private void OpenShulkerbox(HumanEntity player, ItemStack shulkerItem)
+private void OpenShulkerbox(HumanEntity player, ItemStack shulkerItem)
     {
         // Don't open the box if already open (avoids a duplication bug)
         if (openShulkerBoxes.containsKey(player.getUniqueId()) && openShulkerBoxes.get(player.getUniqueId()).equals(shulkerItem))
@@ -196,23 +173,27 @@ public class InventoryListener implements Listener
         ItemMeta meta = shulkerItem.getItemMeta();
         PersistentDataContainer data = meta.getPersistentDataContainer();
         NamespacedKey nbtKey = new NamespacedKey(plugin, "__shulkerbox_plugin");
-        if(!data.has(nbtKey, PersistentDataType.STRING))
-        {
+        if(!data.has(nbtKey, PersistentDataType.STRING)) {
             data.set(nbtKey, PersistentDataType.STRING, String.valueOf(System.currentTimeMillis()));
             shulkerItem.setItemMeta(meta);
         }
+        // Store the lock token so we can find the real item later even if the ItemStack reference changes
+        String lockToken = data.get(nbtKey, PersistentDataType.STRING);
+        openShulkerTokens.put(player.getUniqueId(), lockToken);
 
         Inventory shulker_inventory = ((ShulkerBox)((BlockStateMeta)meta).getBlockState()).getSnapshotInventory();
+
         Inventory inventory;
-        if (!meta.hasDisplayName())
-        {
+        Component title = meta.displayName(); 
+
+        if (title == null) {
             inventory = Bukkit.createInventory(null, InventoryType.SHULKER_BOX);
+        } else {
+            inventory = Bukkit.createInventory(null, InventoryType.SHULKER_BOX, title); 
         }
-        else
-        {
-            inventory = Bukkit.createInventory(null, InventoryType.SHULKER_BOX, meta.getDisplayName());
-        }
+
         inventory.setContents(shulker_inventory.getContents());
+
 
         player.openInventory(inventory);
         Bukkit.getServer().getPlayer(player.getUniqueId()).playSound(player, Sound.BLOCK_SHULKER_BOX_OPEN, SoundCategory.BLOCKS, 1.0f, 1.2f);
@@ -222,16 +203,52 @@ public class InventoryListener implements Listener
 
     private void CloseShulkerbox(HumanEntity player)
     {
-        ItemStack shulkerItem = openShulkerBoxes.get(player.getUniqueId());
-        BlockStateMeta meta = (BlockStateMeta)shulkerItem.getItemMeta();
-        ShulkerBox shulkerbox = (ShulkerBox)meta.getBlockState();
+        String token = openShulkerTokens.get(player.getUniqueId());
+        ItemStack shulkerItem = null;
+
+        // Prefer locating the real item in the player's inventory by lock token (more robust than keeping an ItemStack reference)
+        if (token != null && player instanceof Player p) {
+            ItemStack[] contents = p.getInventory().getContents();
+            for (ItemStack it : contents) {
+                if (it == null) continue;
+                if (!IsShulkerBox(it.getType())) continue;
+                ItemMeta im = it.getItemMeta();
+                if (im == null) continue;
+                PersistentDataContainer dc = im.getPersistentDataContainer();
+                NamespacedKey k = new NamespacedKey(plugin, "__shulkerbox_plugin");
+                String t = dc.get(k, PersistentDataType.STRING);
+                if (token.equals(t)) {
+                    shulkerItem = it;
+                    break;
+                }
+            }
+        }
+
+        // Fallback to the originally stored reference
+        if (shulkerItem == null) {
+            shulkerItem = openShulkerBoxes.get(player.getUniqueId());
+        }
+
+        if (shulkerItem == null) {
+            openShulkerBoxes.remove(player.getUniqueId());
+            openShulkerTokens.remove(player.getUniqueId());
+            return;
+        }
+
+        ItemMeta baseMeta = shulkerItem.getItemMeta();
+        if (!(baseMeta instanceof BlockStateMeta meta)) {
+            openShulkerBoxes.remove(player.getUniqueId());
+            openShulkerTokens.remove(player.getUniqueId());
+            return;
+        }
+
+        ShulkerBox shulkerbox = (ShulkerBox) meta.getBlockState();
         shulkerbox.getInventory().setContents(player.getOpenInventory().getTopInventory().getContents());
 
-        // Delete NBT for "locking" to prevent stacking shulker boxes
+        // Remove NBT lock token to allow stacking again
         PersistentDataContainer data = meta.getPersistentDataContainer();
         NamespacedKey nbtKey = new NamespacedKey(plugin, "__shulkerbox_plugin");
-        if(data.has(nbtKey, PersistentDataType.STRING))
-        {
+        if (data.has(nbtKey, PersistentDataType.STRING)) {
             data.remove(nbtKey);
         }
 
@@ -239,8 +256,9 @@ public class InventoryListener implements Listener
         shulkerItem.setItemMeta(meta);
 
         Bukkit.getServer().getPlayer(player.getUniqueId()).playSound(player, Sound.BLOCK_SHULKER_BOX_CLOSE, SoundCategory.BLOCKS, 1.0f, 1.2f);
-
         openShulkerBoxes.remove(player.getUniqueId());
+        openShulkerTokens.remove(player.getUniqueId());
+    
     }
 
     @EventHandler(priority = EventPriority.LOW)
@@ -251,22 +269,22 @@ public class InventoryListener implements Listener
             return;
         }
 
-        if (!e.isRightClick() || e.isShiftClick())
-        {
-            // Prevent moving or modifying shulker box stacks while a shulker box is open
+
+
+        if (!e.isRightClick() || e.isShiftClick()) {
             if (openShulkerBoxes.containsKey(e.getWhoClicked().getUniqueId()) &&
-                    (
-                            e.getAction() == InventoryAction.HOTBAR_SWAP
-                            || e.getAction() == InventoryAction.HOTBAR_MOVE_AND_READD
-                            || (e.getCurrentItem() != null && IsShulkerBox(e.getCurrentItem().getType()))
-                    )
-            )
-            {
+                (
+                    e.getClick() == ClickType.NUMBER_KEY
+                    || e.getAction() == InventoryAction.HOTBAR_SWAP
+                    || (e.getCurrentItem() != null && IsShulkerBox(e.getCurrentItem().getType()))
+                )
+            ) {
                 e.setCancelled(true);
             }
-
             return;
         }
+
+
 
         InventoryType clickedInventory = e.getClickedInventory().getType();
 
@@ -292,7 +310,7 @@ public class InventoryListener implements Listener
         if (clickedInventory != InventoryType.SHULKER_BOX
                 && IsShulkerBox(itemType)
                 && enableShulkerbox
-                && (!usePermissions || player.hasPermission("ultimateinventory.shulkerbox")))
+                && (!usePermissions || player.hasPermission("leafinventory.shulkerbox")))
         {
             Bukkit.getServer().getScheduler().scheduleSyncDelayedTask(
                     plugin,
@@ -303,7 +321,7 @@ public class InventoryListener implements Listener
 
         if (itemType == Material.ENDER_CHEST
                 && enableEnderChest
-                && (!usePermissions || player.hasPermission("ultimateinventory.enderchest")))
+                && (!usePermissions || player.hasPermission("leafinventory.enderchest")))
         {
             Bukkit.getServer().getScheduler().scheduleSyncDelayedTask(
                     plugin,
@@ -314,7 +332,7 @@ public class InventoryListener implements Listener
 
         if (itemType == Material.CRAFTING_TABLE
                 && enableCraftingTable
-                && (!usePermissions || player.hasPermission("ultimateinventory.craftingtable")))
+                && (!usePermissions || player.hasPermission("leafinventory.craftingtable")))
         {
             Bukkit.getServer().getScheduler().scheduleSyncDelayedTask(
                     plugin,
@@ -327,7 +345,7 @@ public class InventoryListener implements Listener
         {
             if (itemType == Material.STONECUTTER
                     && enableStoneCutter
-                    && (!usePermissions || player.hasPermission("ultimateinventory.stonecutter")))
+                    && (!usePermissions || player.hasPermission("leafinventory.stonecutter")))
             {
                 Bukkit.getServer().getScheduler().scheduleSyncDelayedTask(
                         plugin,
@@ -338,7 +356,7 @@ public class InventoryListener implements Listener
 
             if (itemType == Material.CARTOGRAPHY_TABLE
                     && enableCartographyTable
-                    && (!usePermissions || player.hasPermission("ultimateinventory.cartographytable")))
+                    && (!usePermissions || player.hasPermission("leafinventory.cartographytable")))
             {
                 Bukkit.getServer().getScheduler().scheduleSyncDelayedTask(
                         plugin,
@@ -349,7 +367,7 @@ public class InventoryListener implements Listener
 
             if (itemType == Material.LOOM
                     && enableLoom
-                    && (!usePermissions || player.hasPermission("ultimateinventory.loom")))
+                    && (!usePermissions || player.hasPermission("leafinventory.loom")))
             {
                 Bukkit.getServer().getScheduler().scheduleSyncDelayedTask(
                         plugin,
@@ -360,7 +378,7 @@ public class InventoryListener implements Listener
 
             if (itemType == Material.SMITHING_TABLE
                     && enableSmithingTable
-                    && (!usePermissions || player.hasPermission("ultimateinventory.smithingtable")))
+                    && (!usePermissions || player.hasPermission("leafinventory.smithingtable")))
             {
                 Bukkit.getServer().getScheduler().scheduleSyncDelayedTask(
                         plugin,
@@ -371,7 +389,7 @@ public class InventoryListener implements Listener
 
             if (itemType == Material.GRINDSTONE
                     && enableGrindstone
-                    && (!usePermissions || player.hasPermission("ultimateinventory.grindstone")))
+                    && (!usePermissions || player.hasPermission("leafinventory.grindstone")))
             {
                 Bukkit.getServer().getScheduler().scheduleSyncDelayedTask(
                         plugin,
@@ -382,7 +400,7 @@ public class InventoryListener implements Listener
 
             if (IsAnvil(itemType)
                     && enableAnvil
-                    && (!usePermissions || player.hasPermission("ultimateinventory.anvil")))
+                    && (!usePermissions || player.hasPermission("leafinventory.anvil")))
             {
                 Bukkit.getServer().getScheduler().scheduleSyncDelayedTask(
                         plugin,
@@ -408,7 +426,7 @@ public class InventoryListener implements Listener
         if (IsShulkerBox(itemType)
                 && item.getAmount() == 1
                 && enableShulkerbox
-                && (!usePermissions || player.hasPermission("ultimateinventory.shulkerbox")))
+                && (!usePermissions || player.hasPermission("LeafInventory.shulkerbox")))
         {
             Bukkit.getServer().getScheduler().scheduleSyncDelayedTask(
                     plugin,
@@ -419,7 +437,7 @@ public class InventoryListener implements Listener
 
         if (itemType == Material.ENDER_CHEST
                 && enableEnderChest
-                && (!usePermissions || player.hasPermission("ultimateinventory.enderchest")))
+                && (!usePermissions || player.hasPermission("LeafInventory.enderchest")))
         {
             Bukkit.getServer().getScheduler().scheduleSyncDelayedTask(
                     plugin,
@@ -430,7 +448,7 @@ public class InventoryListener implements Listener
 
         if (itemType == Material.CRAFTING_TABLE
                 && enableCraftingTable
-                && (!usePermissions || player.hasPermission("ultimateinventory.craftingtable")))
+                && (!usePermissions || player.hasPermission("LeafInventory.craftingtable")))
         {
             Bukkit.getServer().getScheduler().scheduleSyncDelayedTask(
                     plugin,
@@ -443,7 +461,7 @@ public class InventoryListener implements Listener
         {
             if (itemType == Material.STONECUTTER
                     && enableStoneCutter
-                    && (!usePermissions || player.hasPermission("ultimateinventory.stonecutter")))
+                    && (!usePermissions || player.hasPermission("LeafInventory.stonecutter")))
             {
                 Bukkit.getServer().getScheduler().scheduleSyncDelayedTask(
                         plugin,
@@ -454,7 +472,7 @@ public class InventoryListener implements Listener
 
             if (itemType == Material.CARTOGRAPHY_TABLE
                     && enableCartographyTable
-                    && (!usePermissions || player.hasPermission("ultimateinventory.cartographytable")))
+                    && (!usePermissions || player.hasPermission("LeafInventory.cartographytable")))
             {
                 Bukkit.getServer().getScheduler().scheduleSyncDelayedTask(
                         plugin,
@@ -465,7 +483,7 @@ public class InventoryListener implements Listener
 
             if (itemType == Material.LOOM
                     && enableLoom
-                    && (!usePermissions || player.hasPermission("ultimateinventory.loom")))
+                    && (!usePermissions || player.hasPermission("LeafInventory.loom")))
             {
                 Bukkit.getServer().getScheduler().scheduleSyncDelayedTask(
                         plugin,
@@ -476,7 +494,7 @@ public class InventoryListener implements Listener
 
             if (itemType == Material.SMITHING_TABLE
                     && enableSmithingTable
-                    && (!usePermissions || player.hasPermission("ultimateinventory.smithingtable")))
+                    && (!usePermissions || player.hasPermission("LeafInventory.smithingtable")))
             {
                 Bukkit.getServer().getScheduler().scheduleSyncDelayedTask(
                         plugin,
@@ -487,7 +505,7 @@ public class InventoryListener implements Listener
 
             if (itemType == Material.GRINDSTONE
                     && enableGrindstone
-                    && (!usePermissions || player.hasPermission("ultimateinventory.grindstone")))
+                    && (!usePermissions || player.hasPermission("LeafInventory.grindstone")))
             {
                 Bukkit.getServer().getScheduler().scheduleSyncDelayedTask(
                         plugin,
@@ -498,7 +516,7 @@ public class InventoryListener implements Listener
 
             if (IsAnvil(itemType)
                     && enableAnvil
-                    && (!usePermissions || player.hasPermission("ultimateinventory.anvil")))
+                    && (!usePermissions || player.hasPermission("LeafInventory.anvil")))
             {
                 Bukkit.getServer().getScheduler().scheduleSyncDelayedTask(
                         plugin,
@@ -509,14 +527,63 @@ public class InventoryListener implements Listener
         }
     }
 
+    
     @EventHandler(priority = EventPriority.HIGHEST)
-    public void InventoryClose(InventoryCloseEvent e)
+    public void InventoryDrag(InventoryDragEvent e)
+    {
+        if (openShulkerBoxes.containsKey(e.getWhoClicked().getUniqueId()))
+        {
+            // Simplest safe option: disallow dragging while a shulker view is open to avoid moving the backing item.
+            e.setCancelled(true);
+        }
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST)
+    public void DropItem(PlayerDropItemEvent e)
+    {
+        if (openShulkerBoxes.containsKey(e.getPlayer().getUniqueId()))
+        {
+            // Prevent dropping items while a shulker view is open (avoids desync / wrong write-back)
+            e.setCancelled(true);
+        }
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST)
+    public void SwapHand(PlayerSwapHandItemsEvent e)
+    {
+        if (openShulkerBoxes.containsKey(e.getPlayer().getUniqueId()))
+        {
+            // Prevent swapping hands while a shulker view is open
+            e.setCancelled(true);
+        }
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST)
+    public void Quit(PlayerQuitEvent e)
     {
         if (openShulkerBoxes.containsKey(e.getPlayer().getUniqueId()))
         {
             CloseShulkerbox(e.getPlayer());
         }
     }
+
+    @EventHandler(priority = EventPriority.HIGHEST)
+    public void Kick(PlayerKickEvent e)
+    {
+        if (openShulkerBoxes.containsKey(e.getPlayer().getUniqueId()))
+        {
+            CloseShulkerbox(e.getPlayer());
+        }
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST)
+        public void InventoryClose(InventoryCloseEvent e)
+        {
+            if (openShulkerBoxes.containsKey(e.getPlayer().getUniqueId()))
+            {
+                CloseShulkerbox(e.getPlayer());
+            }
+        }
 
     // Needs to close shulker box before items drop on death to avoid a duplication bug
     @EventHandler(priority = EventPriority.HIGHEST)

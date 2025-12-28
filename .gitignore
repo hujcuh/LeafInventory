@@ -1,3 +1,5 @@
-.idea
-target
-/UltimateInventory.iml
+/target/
+/.idea/
+/.vscode/
+*.iml
+.DS_Store
