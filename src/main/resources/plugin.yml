@@ -24,3 +24,9 @@ permissions:
     default: false
   leafinventory.enchantingtable:
     default: false
+  leafinventory.furnace:
+    default: false
+  leafinventory.blastfurnace:
+    default: false
+  leafinventory.smoker:
+    default: false

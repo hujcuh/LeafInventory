@@ -14,7 +14,6 @@ import org.bukkit.event.block.Action;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.inventory.*;
 import org.bukkit.event.player.PlayerInteractEvent;
-import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerKickEvent;
@@ -23,8 +22,13 @@ import org.bukkit.inventory.*;
 import org.bukkit.inventory.meta.BlockStateMeta;
 import org.bukkit.inventory.meta.ItemMeta;
 
+
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
+import org.bukkit.inventory.view.builder.LocationInventoryViewBuilder;
+import org.bukkit.inventory.view.builder.InventoryViewBuilder;
+
+
 
 import net.kyori.adventure.text.Component;
 
@@ -46,28 +50,48 @@ public class InventoryListener implements Listener
     boolean enableCartographyTable;
     boolean enableLoom;
     boolean enableAnvil;
+    boolean enableEnchantingTable;
+
+    boolean enableFurnace;
+    boolean enableBlastFurnace;
+    boolean enableSmoker;
+
+    private final WorkstationManager workstationManager;
+    
 
     boolean usePermissions;
-
+    
     public InventoryListener(LeafInventory plugin, FileConfiguration config, boolean isPaper) {
+        this(plugin, config, isPaper, null);
+    }
+
+
+    public InventoryListener(LeafInventory plugin, FileConfiguration config, boolean isPaper, WorkstationManager workstationManager) {
         this.config = config;
         this.plugin = plugin;
         this.isPaper = isPaper;
+        this.workstationManager = workstationManager;
 
         enableShulkerbox = config.getBoolean("enableShulkerbox", true);
         enableEnderChest = config.getBoolean("enableEnderChest", true);
         enableCraftingTable = config.getBoolean("enableCraftingTable", true);
-        if (isPaper)
-        {
+
+        if (isPaper) {
             enableSmithingTable = config.getBoolean("enableSmithingTable", true);
             enableStoneCutter = config.getBoolean("enableStoneCutter", true);
             enableGrindstone = config.getBoolean("enableGrindstone", true);
             enableCartographyTable = config.getBoolean("enableCartographyTable", true);
             enableLoom = config.getBoolean("enableLoom", true);
             enableAnvil = config.getBoolean("enableAnvil", false);
+            enableEnchantingTable = config.getBoolean("enableEnchantingTable", true);
+            enableFurnace = config.getBoolean("enableFurnace", true);
+            enableBlastFurnace = config.getBoolean("enableBlastFurnace", true);
+            enableSmoker = config.getBoolean("enableSmoker", true);
         }
+
         usePermissions = config.getBoolean("usePermissions", false);
     }
+
 
     private boolean IsShulkerBox(Material material)
     {
@@ -109,14 +133,32 @@ public class InventoryListener implements Listener
         }
     }
 
-    // --- MenuType API helper (recommended in Paper 1.21.4+ over the deprecated openXxx methods) ---
-    private void openMenuIfNotAlready(HumanEntity player, InventoryType legacyType, MenuType.Typed<? extends InventoryView, ?> menuType) {
-        if (player.getOpenInventory() != null && player.getOpenInventory().getTopInventory().getType() == legacyType) {
+
+    private void openMenuIfNotAlreadyAt(
+            HumanEntity player,
+            InventoryType legacyType,
+            MenuType.Typed<? extends InventoryView, ? extends InventoryViewBuilder<? extends InventoryView>> menuType,
+            Location location,
+            boolean checkReachable
+    ) {
+        if (player.getOpenInventory() != null
+                && player.getOpenInventory().getTopInventory().getType() == legacyType) {
             return;
         }
-        InventoryView view = menuType.create(player);
-        player.openInventory(view);
+
+        InventoryViewBuilder<? extends InventoryView> builder = menuType.builder(); 
+
+        if (builder instanceof LocationInventoryViewBuilder<?> locBuilder) {
+            
+            locBuilder.location(location).checkReachable(checkReachable);
+            InventoryView view = ((LocationInventoryViewBuilder<?>) locBuilder).build(player); 
+            player.openInventory(view);
+        } else {
+            
+            player.openInventory(menuType.create(player));
+        }
     }
+
 
 
     private void ShowEnderchest(HumanEntity player)
@@ -133,73 +175,109 @@ public class InventoryListener implements Listener
         }
     }
 
-        private void ShowCraftingTable(HumanEntity player)
-    {
-        openMenuIfNotAlready(player, InventoryType.WORKBENCH, MenuType.CRAFTING);
+
+    private void ShowCraftingTable(HumanEntity player) {
+        openMenuIfNotAlreadyAt(player, InventoryType.WORKBENCH, MenuType.CRAFTING, player.getLocation(), false);
     }
-    private void ShowStoneCutter(HumanEntity player)
-    {
-        openMenuIfNotAlready(player, InventoryType.STONECUTTER, MenuType.STONECUTTER);
+
+    private void ShowStoneCutter(HumanEntity player) {
+        openMenuIfNotAlreadyAt(player, InventoryType.STONECUTTER, MenuType.STONECUTTER, player.getLocation(), false);
     }
-    private void ShowCartographyTable(HumanEntity player)
-    {
-        openMenuIfNotAlready(player, InventoryType.CARTOGRAPHY, MenuType.CARTOGRAPHY_TABLE);
+
+    private void ShowCartographyTable(HumanEntity player) {
+        openMenuIfNotAlreadyAt(player, InventoryType.CARTOGRAPHY, MenuType.CARTOGRAPHY_TABLE, player.getLocation(), false);
     }
-    private void ShowLoom(HumanEntity player)
-    {
-        openMenuIfNotAlready(player, InventoryType.LOOM, MenuType.LOOM);
+
+    private void ShowLoom(HumanEntity player) {
+        openMenuIfNotAlreadyAt(player, InventoryType.LOOM, MenuType.LOOM, player.getLocation(), false);
     }
-    private void ShowSmithingTable(HumanEntity player)
-    {
-        openMenuIfNotAlready(player, InventoryType.SMITHING, MenuType.SMITHING);
+
+    private void ShowSmithingTable(HumanEntity player) {
+        openMenuIfNotAlreadyAt(player, InventoryType.SMITHING, MenuType.SMITHING, player.getLocation(), false);
     }
-    private void ShowGrindstone(HumanEntity player)
-    {
-        openMenuIfNotAlready(player, InventoryType.GRINDSTONE, MenuType.GRINDSTONE);
+
+    private void ShowGrindstone(HumanEntity player) {
+        openMenuIfNotAlreadyAt(player, InventoryType.GRINDSTONE, MenuType.GRINDSTONE, player.getLocation(), false);
     }
-    private void ShowAnvil(HumanEntity player)
-    {
-        openMenuIfNotAlready(player, InventoryType.ANVIL, MenuType.ANVIL);
+
+    private void ShowAnvil(HumanEntity player) {
+        openMenuIfNotAlreadyAt(player, InventoryType.ANVIL, MenuType.ANVIL, player.getLocation(), false);
     }
-private void OpenShulkerbox(HumanEntity player, ItemStack shulkerItem)
-    {
-        // Don't open the box if already open (avoids a duplication bug)
-        if (openShulkerBoxes.containsKey(player.getUniqueId()) && openShulkerBoxes.get(player.getUniqueId()).equals(shulkerItem))
-        {
+    
+    private void ShowFurnace(Player player) {
+        if (workstationManager != null) workstationManager.openFurnace(player);
+    }
+
+    private void ShowBlastFurnace(Player player) {
+        if (workstationManager != null) workstationManager.openBlastFurnace(player);
+    }
+
+    private void ShowSmoker(Player player) {
+        if (workstationManager != null) workstationManager.openSmoker(player);
+    }
+
+
+
+    private void ShowEnchantingTable(HumanEntity player) {
+        if (player.getOpenInventory() != null
+                && player.getOpenInventory().getTopInventory().getType() == InventoryType.ENCHANTING) {
+            player.closeInventory();
             return;
         }
 
-        // Added NBT for "locking" to prevent stacking shulker boxes
-        ItemMeta meta = shulkerItem.getItemMeta();
-        PersistentDataContainer data = meta.getPersistentDataContainer();
-        NamespacedKey nbtKey = new NamespacedKey(plugin, "__shulkerbox_plugin");
-        if(!data.has(nbtKey, PersistentDataType.STRING)) {
-            data.set(nbtKey, PersistentDataType.STRING, String.valueOf(System.currentTimeMillis()));
-            shulkerItem.setItemMeta(meta);
-        }
-        // Store the lock token so we can find the real item later even if the ItemStack reference changes
-        String lockToken = data.get(nbtKey, PersistentDataType.STRING);
-        openShulkerTokens.put(player.getUniqueId(), lockToken);
-
-        Inventory shulker_inventory = ((ShulkerBox)((BlockStateMeta)meta).getBlockState()).getSnapshotInventory();
-
-        Inventory inventory;
-        Component title = meta.displayName(); 
-
-        if (title == null) {
-            inventory = Bukkit.createInventory(null, InventoryType.SHULKER_BOX);
-        } else {
-            inventory = Bukkit.createInventory(null, InventoryType.SHULKER_BOX, title); 
-        }
-
-        inventory.setContents(shulker_inventory.getContents());
-
-
-        player.openInventory(inventory);
-        Bukkit.getServer().getPlayer(player.getUniqueId()).playSound(player, Sound.BLOCK_SHULKER_BOX_OPEN, SoundCategory.BLOCKS, 1.0f, 1.2f);
-
-        openShulkerBoxes.put(player.getUniqueId(), shulkerItem);
+        openMenuIfNotAlreadyAt(
+                player,
+                InventoryType.ENCHANTING,
+                MenuType.ENCHANTMENT,
+                player.getLocation(),
+                false
+        );
     }
+
+
+
+
+
+
+    private void OpenShulkerbox(HumanEntity player, ItemStack shulkerItem)
+        {
+            // Don't open the box if already open (avoids a duplication bug)
+            if (openShulkerBoxes.containsKey(player.getUniqueId()) && openShulkerBoxes.get(player.getUniqueId()).equals(shulkerItem))
+            {
+                return;
+            }
+
+            // Added NBT for "locking" to prevent stacking shulker boxes
+            ItemMeta meta = shulkerItem.getItemMeta();
+            PersistentDataContainer data = meta.getPersistentDataContainer();
+            NamespacedKey nbtKey = new NamespacedKey(plugin, "__shulkerbox_plugin");
+            if(!data.has(nbtKey, PersistentDataType.STRING)) {
+                data.set(nbtKey, PersistentDataType.STRING, String.valueOf(System.currentTimeMillis()));
+                shulkerItem.setItemMeta(meta);
+            }
+            // Store the lock token so we can find the real item later even if the ItemStack reference changes
+            String lockToken = data.get(nbtKey, PersistentDataType.STRING);
+            openShulkerTokens.put(player.getUniqueId(), lockToken);
+
+            Inventory shulker_inventory = ((ShulkerBox)((BlockStateMeta)meta).getBlockState()).getSnapshotInventory();
+
+            Inventory inventory;
+            Component title = meta.displayName(); 
+
+            if (title == null) {
+                inventory = Bukkit.createInventory(null, InventoryType.SHULKER_BOX);
+            } else {
+                inventory = Bukkit.createInventory(null, InventoryType.SHULKER_BOX, title); 
+            }
+
+            inventory.setContents(shulker_inventory.getContents());
+
+
+            player.openInventory(inventory);
+            Bukkit.getServer().getPlayer(player.getUniqueId()).playSound(player, Sound.BLOCK_SHULKER_BOX_OPEN, SoundCategory.BLOCKS, 1.0f, 1.2f);
+
+            openShulkerBoxes.put(player.getUniqueId(), shulkerItem);
+        }
 
     private void CloseShulkerbox(HumanEntity player)
     {
@@ -286,7 +364,11 @@ private void OpenShulkerbox(HumanEntity player, ItemStack shulkerItem)
 
 
 
-        InventoryType clickedInventory = e.getClickedInventory().getType();
+
+        Inventory clicked = e.getClickedInventory();
+        if (clicked == null) return;
+        InventoryType clickedInventory = clicked.getType();
+
 
         if (!(clickedInventory == InventoryType.PLAYER || clickedInventory == InventoryType.ENDER_CHEST || clickedInventory == InventoryType.SHULKER_BOX))
         {
@@ -343,6 +425,18 @@ private void OpenShulkerbox(HumanEntity player, ItemStack shulkerItem)
 
         if (isPaper)
         {
+            
+        if (itemType == Material.ENCHANTING_TABLE
+                && enableEnchantingTable
+                && (!usePermissions || player.hasPermission("leafinventory.enchantingtable"))) { 
+
+            Bukkit.getServer().getScheduler().scheduleSyncDelayedTask(
+                    plugin,
+                    () -> ShowEnchantingTable(player)
+            );
+            e.setCancelled(true);
+            }
+
             if (itemType == Material.STONECUTTER
                     && enableStoneCutter
                     && (!usePermissions || player.hasPermission("leafinventory.stonecutter")))
@@ -408,6 +502,38 @@ private void OpenShulkerbox(HumanEntity player, ItemStack shulkerItem)
                 );
                 e.setCancelled(true);
             }
+            
+            if (itemType == Material.FURNACE
+                    && enableFurnace
+                    && (!usePermissions || player.hasPermission("leafinventory.furnace"))) {
+                Bukkit.getServer().getScheduler().scheduleSyncDelayedTask(
+                        plugin,
+                        () -> ShowFurnace((Player) player)
+                );
+                e.setCancelled(true);
+            }
+
+            if (itemType == Material.BLAST_FURNACE
+                    && enableBlastFurnace
+                    && (!usePermissions || player.hasPermission("leafinventory.blastfurnace"))) {
+                Bukkit.getServer().getScheduler().scheduleSyncDelayedTask(
+                        plugin,
+                        () -> ShowBlastFurnace((Player) player)
+                );
+                e.setCancelled(true);
+            }
+
+            if (itemType == Material.SMOKER
+                    && enableSmoker
+                    && (!usePermissions || player.hasPermission("leafinventory.smoker"))) {
+                Bukkit.getServer().getScheduler().scheduleSyncDelayedTask(
+                        plugin,
+                        () -> ShowSmoker((Player) player)
+                );
+                e.setCancelled(true);
+            }
+
+
         }
     }
 
@@ -426,7 +552,7 @@ private void OpenShulkerbox(HumanEntity player, ItemStack shulkerItem)
         if (IsShulkerBox(itemType)
                 && item.getAmount() == 1
                 && enableShulkerbox
-                && (!usePermissions || player.hasPermission("LeafInventory.shulkerbox")))
+                && (!usePermissions || player.hasPermission("leafinventory.shulkerbox")))
         {
             Bukkit.getServer().getScheduler().scheduleSyncDelayedTask(
                     plugin,
@@ -437,7 +563,7 @@ private void OpenShulkerbox(HumanEntity player, ItemStack shulkerItem)
 
         if (itemType == Material.ENDER_CHEST
                 && enableEnderChest
-                && (!usePermissions || player.hasPermission("LeafInventory.enderchest")))
+                && (!usePermissions || player.hasPermission("leafinventory.enderchest")))
         {
             Bukkit.getServer().getScheduler().scheduleSyncDelayedTask(
                     plugin,
@@ -448,7 +574,7 @@ private void OpenShulkerbox(HumanEntity player, ItemStack shulkerItem)
 
         if (itemType == Material.CRAFTING_TABLE
                 && enableCraftingTable
-                && (!usePermissions || player.hasPermission("LeafInventory.craftingtable")))
+                && (!usePermissions || player.hasPermission("leafinventory.craftingtable")))
         {
             Bukkit.getServer().getScheduler().scheduleSyncDelayedTask(
                     plugin,
@@ -459,9 +585,22 @@ private void OpenShulkerbox(HumanEntity player, ItemStack shulkerItem)
 
         if (isPaper)
         {
+            
+            if (itemType == Material.ENCHANTING_TABLE
+                    && enableEnchantingTable
+                    && (!usePermissions || player.hasPermission("leafinventory.enchantingtable"))) { 
+
+                Bukkit.getServer().getScheduler().scheduleSyncDelayedTask(
+                        plugin,
+                        () -> ShowEnchantingTable(player)
+                );
+                e.setCancelled(true);
+            }
+
+
             if (itemType == Material.STONECUTTER
                     && enableStoneCutter
-                    && (!usePermissions || player.hasPermission("LeafInventory.stonecutter")))
+                    && (!usePermissions || player.hasPermission("leafinventory.stonecutter")))
             {
                 Bukkit.getServer().getScheduler().scheduleSyncDelayedTask(
                         plugin,
@@ -472,7 +611,7 @@ private void OpenShulkerbox(HumanEntity player, ItemStack shulkerItem)
 
             if (itemType == Material.CARTOGRAPHY_TABLE
                     && enableCartographyTable
-                    && (!usePermissions || player.hasPermission("LeafInventory.cartographytable")))
+                    && (!usePermissions || player.hasPermission("leafinventory.cartographytable")))
             {
                 Bukkit.getServer().getScheduler().scheduleSyncDelayedTask(
                         plugin,
@@ -483,7 +622,7 @@ private void OpenShulkerbox(HumanEntity player, ItemStack shulkerItem)
 
             if (itemType == Material.LOOM
                     && enableLoom
-                    && (!usePermissions || player.hasPermission("LeafInventory.loom")))
+                    && (!usePermissions || player.hasPermission("leafinventory.loom")))
             {
                 Bukkit.getServer().getScheduler().scheduleSyncDelayedTask(
                         plugin,
@@ -494,7 +633,7 @@ private void OpenShulkerbox(HumanEntity player, ItemStack shulkerItem)
 
             if (itemType == Material.SMITHING_TABLE
                     && enableSmithingTable
-                    && (!usePermissions || player.hasPermission("LeafInventory.smithingtable")))
+                    && (!usePermissions || player.hasPermission("leafinventory.smithingtable")))
             {
                 Bukkit.getServer().getScheduler().scheduleSyncDelayedTask(
                         plugin,
@@ -505,7 +644,7 @@ private void OpenShulkerbox(HumanEntity player, ItemStack shulkerItem)
 
             if (itemType == Material.GRINDSTONE
                     && enableGrindstone
-                    && (!usePermissions || player.hasPermission("LeafInventory.grindstone")))
+                    && (!usePermissions || player.hasPermission("leafinventory.grindstone")))
             {
                 Bukkit.getServer().getScheduler().scheduleSyncDelayedTask(
                         plugin,
@@ -516,7 +655,7 @@ private void OpenShulkerbox(HumanEntity player, ItemStack shulkerItem)
 
             if (IsAnvil(itemType)
                     && enableAnvil
-                    && (!usePermissions || player.hasPermission("LeafInventory.anvil")))
+                    && (!usePermissions || player.hasPermission("leafinventory.anvil")))
             {
                 Bukkit.getServer().getScheduler().scheduleSyncDelayedTask(
                         plugin,
@@ -524,6 +663,37 @@ private void OpenShulkerbox(HumanEntity player, ItemStack shulkerItem)
                 );
                 e.setCancelled(true);
             }
+            
+            if (itemType == Material.FURNACE
+                    && enableFurnace
+                    && (!usePermissions || player.hasPermission("leafinventory.furnace"))) {
+                Bukkit.getServer().getScheduler().scheduleSyncDelayedTask(
+                        plugin,
+                        () -> ShowFurnace(player)
+                );
+                e.setCancelled(true);
+            }
+
+            if (itemType == Material.BLAST_FURNACE
+                    && enableBlastFurnace
+                    && (!usePermissions || player.hasPermission("leafinventory.blastfurnace"))) {
+                Bukkit.getServer().getScheduler().scheduleSyncDelayedTask(
+                        plugin,
+                        () -> ShowBlastFurnace(player)
+                );
+                e.setCancelled(true);
+            }
+
+            if (itemType == Material.SMOKER
+                    && enableSmoker
+                    && (!usePermissions || player.hasPermission("leafinventory.smoker"))) {
+                Bukkit.getServer().getScheduler().scheduleSyncDelayedTask(
+                        plugin,
+                        () -> ShowSmoker(player)
+                );
+                e.setCancelled(true);
+            }
+
         }
     }
 
