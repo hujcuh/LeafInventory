@@ -13,10 +13,10 @@ A Minecraft server plugin to streamline inventory management (Spigot / Paper).
 ## Features
 
 ### Open ender chests, shulker boxes and crafting tables by right-clicking **in the inventory**
-!demo1
+
 
 ### Open ender chests, shulker boxes and crafting tables by right-clicking **in your hand**
-!demo2
+
 
 > [!NOTE]
 > Bonus! If you are running **Paper**, you can also open anvils, stonecutters, grindstones, looms, smithing tables and cartography tables the same way as crafting tables. 
