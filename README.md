@@ -63,13 +63,13 @@ The plugin registers the following permission nodes (all default to `false`):
 
 ## ⚠️ Caution: Duplication / Inventory Safety
 
-**Caution: while every care has been taken to remove duplication bugs, some may remain.** [5](https://zhuanlan.zhihu.com/p/676396123)  
+**Caution: while every care has been taken to remove duplication bugs, some may remain.** 
 
 Please consider your plugins carefully before installing. Duplication risks increase when combined with other inventory-manipulating plugins.
 
 Things to avoid in other plugins:
 - Plugins that rearrange inventories/ender chests outside of normal click/drag interactions
-- Plugins that let one player change another player's inventory/ender chest while they're online (e.g. `/invsee`-like features) [5](https://zhuanlan.zhihu.com/p/676396123)[11](https://docs.suanlix.cn/github.html)
+- Plugins that let one player change another player's inventory/ender chest while they're online (e.g. `/invsee`-like features) 
 
 
 ---
