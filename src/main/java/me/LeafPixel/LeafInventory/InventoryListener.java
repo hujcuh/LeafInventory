@@ -25,8 +25,7 @@ import org.bukkit.inventory.meta.ItemMeta;
 
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
-import org.bukkit.inventory.view.builder.LocationInventoryViewBuilder;
-import org.bukkit.inventory.view.builder.InventoryViewBuilder;
+
 
 
 
@@ -134,30 +133,29 @@ public class InventoryListener implements Listener
     }
 
 
-    private void openMenuIfNotAlreadyAt(
-            HumanEntity player,
-            InventoryType legacyType,
-            MenuType.Typed<? extends InventoryView, ? extends InventoryViewBuilder<? extends InventoryView>> menuType,
-            Location location,
-            boolean checkReachable
+
+    private boolean openMenuByCreateIfNotAlready(
+        HumanEntity player,
+        InventoryType legacyType,
+        MenuType menuType
     ) {
+        
         if (player.getOpenInventory() != null
-                && player.getOpenInventory().getTopInventory().getType() == legacyType) {
-            return;
+            && player.getOpenInventory().getTopInventory().getType() == legacyType) {
+            return true;
         }
 
-        InventoryViewBuilder<? extends InventoryView> builder = menuType.builder(); 
-
-        if (builder instanceof LocationInventoryViewBuilder<?> locBuilder) {
+        try {
             
-            locBuilder.location(location).checkReachable(checkReachable);
-            InventoryView view = ((LocationInventoryViewBuilder<?>) locBuilder).build(player); 
+            InventoryView view = menuType.create(player, Component.empty());
             player.openInventory(view);
-        } else {
+            return true;
+        } catch (Throwable t) {
             
-            player.openInventory(menuType.create(player));
+            return false;
         }
     }
+
 
 
 
@@ -177,31 +175,39 @@ public class InventoryListener implements Listener
 
 
     private void ShowCraftingTable(HumanEntity player) {
-        openMenuIfNotAlreadyAt(player, InventoryType.WORKBENCH, MenuType.CRAFTING, player.getLocation(), false);
+        boolean ok = openMenuByCreateIfNotAlready(player, InventoryType.WORKBENCH, MenuType.CRAFTING);
+        if (!ok) {
+            
+            player.openWorkbench(player.getLocation(), false);
+        }
     }
+
+
+
 
     private void ShowStoneCutter(HumanEntity player) {
-        openMenuIfNotAlreadyAt(player, InventoryType.STONECUTTER, MenuType.STONECUTTER, player.getLocation(), false);
+        openMenuByCreateIfNotAlready(player, InventoryType.STONECUTTER, MenuType.STONECUTTER);
     }
+    private void ShowLoom(HumanEntity player) {
+        openMenuByCreateIfNotAlready(player, InventoryType.LOOM, MenuType.LOOM);
+    }
+
 
     private void ShowCartographyTable(HumanEntity player) {
-        openMenuIfNotAlreadyAt(player, InventoryType.CARTOGRAPHY, MenuType.CARTOGRAPHY_TABLE, player.getLocation(), false);
+        openMenuByCreateIfNotAlready(player, InventoryType.CARTOGRAPHY, MenuType.CARTOGRAPHY_TABLE);
     }
 
-    private void ShowLoom(HumanEntity player) {
-        openMenuIfNotAlreadyAt(player, InventoryType.LOOM, MenuType.LOOM, player.getLocation(), false);
-    }
 
     private void ShowSmithingTable(HumanEntity player) {
-        openMenuIfNotAlreadyAt(player, InventoryType.SMITHING, MenuType.SMITHING, player.getLocation(), false);
+        openMenuByCreateIfNotAlready(player, InventoryType.SMITHING, MenuType.SMITHING);
     }
 
     private void ShowGrindstone(HumanEntity player) {
-        openMenuIfNotAlreadyAt(player, InventoryType.GRINDSTONE, MenuType.GRINDSTONE, player.getLocation(), false);
+        openMenuByCreateIfNotAlready(player, InventoryType.GRINDSTONE, MenuType.GRINDSTONE);
     }
 
     private void ShowAnvil(HumanEntity player) {
-        openMenuIfNotAlreadyAt(player, InventoryType.ANVIL, MenuType.ANVIL, player.getLocation(), false);
+        openMenuByCreateIfNotAlready(player, InventoryType.ANVIL, MenuType.ANVIL);
     }
     
     private void ShowFurnace(Player player) {
@@ -218,21 +224,21 @@ public class InventoryListener implements Listener
 
 
 
+
     private void ShowEnchantingTable(HumanEntity player) {
+
         if (player.getOpenInventory() != null
-                && player.getOpenInventory().getTopInventory().getType() == InventoryType.ENCHANTING) {
+            && player.getOpenInventory().getTopInventory().getType() == InventoryType.ENCHANTING) {
             player.closeInventory();
             return;
         }
 
-        openMenuIfNotAlreadyAt(
-                player,
-                InventoryType.ENCHANTING,
-                MenuType.ENCHANTMENT,
-                player.getLocation(),
-                false
-        );
+        boolean ok = openMenuByCreateIfNotAlready(player, InventoryType.ENCHANTING, MenuType.ENCHANTMENT);
+        if (!ok) {
+            player.openEnchanting(player.getLocation(), false);
+        }
     }
+
 
 
 

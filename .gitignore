@@ -1,5 +1,9 @@
 /target/
 /.idea/
 /.vscode/
+git push origin main
+git push origin main.pub
+*.pub
+
 *.iml
 .DS_Store

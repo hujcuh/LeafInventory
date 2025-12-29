@@ -1,5 +1,5 @@
 name: LeafInventory
-version: 1.0
+version: 1.2.0
 author: LeafPixel
 main: me.LeafPixel.LeafInventory.LeafInventory
 api-version: '1.21'

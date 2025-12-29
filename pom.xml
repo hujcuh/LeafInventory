@@ -6,12 +6,13 @@
 
     <groupId>me.LeafPixel</groupId>
     <artifactId>LeafInventory</artifactId>
-    <version>1.1</version>
+    <version>1.2.0</version>
+
 
 
 
     <properties>
-        <mc.api.version>1.21.10-R0.1-SNAPSHOT</mc.api.version>
+        <mc.api.version>1.21.1-R0.1-SNAPSHOT</mc.api.version>
         <maven.compiler.release>21</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
@@ -37,7 +38,7 @@
         <dependency>
             <groupId>io.papermc.paper</groupId>
             <artifactId>paper-api</artifactId>
-            <version>1.21.10-R0.1-SNAPSHOT</version>
+            <version>1.21.1-R0.1-SNAPSHOT</version>
             <scope>provided</scope>
         </dependency>
         
@@ -45,7 +46,7 @@
 
 
     <profiles>
-    <!-- 默认：编译 Spigot（保证 Spigot 兼容） -->
+
         <profile>
             <id>spigot</id>
             <activation>
@@ -61,7 +62,7 @@
             </dependencies>
         </profile>
 
-  <!-- 可选：编译 Paper（当你要用 Paper 专属 API 时启用） -->
+
         <profile>
             <id>paper</id>
             <dependencies>

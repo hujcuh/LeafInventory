@@ -12,7 +12,7 @@ public class LeafInventory extends JavaPlugin {
     public void onEnable() {
         FileConfiguration config = getConfig();
         boolean isPaper = false;
-
+        
         try {
             Class.forName("com.destroystokyo.paper.utils.PaperPluginLogger");
             isPaper = true;
@@ -87,7 +87,23 @@ public class LeafInventory extends JavaPlugin {
         }
 
         
-        pm.registerEvents(new InventoryListener(this, config, isPaper, ws), this);
+
+        boolean hasViewBuilder;
+        try {
+            Class.forName("org.bukkit.inventory.view.builder.InventoryViewBuilder");
+            hasViewBuilder = true;
+        } catch (ClassNotFoundException ex) {
+            hasViewBuilder = false;
+        }
+
+        if (hasViewBuilder) {
+            
+            pm.registerEvents(new InventoryListener(this, config, isPaper, ws), this);
+        } else {
+            
+            pm.registerEvents(new InventoryListenerLegacy(this, config, ws), this);
+        }
+
     }
 
 }
