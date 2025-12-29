@@ -1,4 +1,3 @@
-
 # LeafInventory
 A Minecraft server plugin to streamline inventory management (Spigot / Paper). 
 
@@ -44,16 +43,21 @@ A Minecraft server plugin to streamline inventory management (Spigot / Paper).
 
 The plugin registers the following permission nodes (all default to `false`):
 
-- `leafinventory.shulkerbox`
-- `leafinventory.enderchest`
-- `leafinventory.craftingtable`
-- `leafinventory.smithingtable`
-- `leafinventory.stonecutter`
-- `leafinventory.grindstone`
-- `leafinventory.cartographytable`
-- `leafinventory.loom`
-- `leafinventory.anvil`
-- `leafinventory.enchantingtable`
+- leafinventory.shulkerbox
+- leafinventory.enderchest
+- leafinventory.craftingtable
+- leafinventory.smithingtable
+- leafinventory.stonecutter
+- leafinventory.grindstone
+- leafinventory.cartographytable
+- leafinventory.loom
+- leafinventory.anvil
+- leafinventory.enchantingtable
+- leafinventory.enchantingtable
+- leafinventory.furnace`  
+- leafinventory.blastfurnace`  
+- leafinventory.smoker 
+- leafinventory.workstation.bypass
 
 ---
 
