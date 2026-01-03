@@ -1,4 +1,4 @@
-package me.LeafPixel.LeafInventory;
+package me.LeafPixel.LeafInventory.workstation;
 
 import org.bukkit.*;
 import org.bukkit.block.Block;

@@ -1,5 +1,5 @@
 # LeafInventory
-A Minecraft server plugin to streamline inventory management (Spigot / Paper). 
+A Minecraft server plugin to streamline inventory management (Paper). 
 
 > **Fork / Rebrand Notice**
 >

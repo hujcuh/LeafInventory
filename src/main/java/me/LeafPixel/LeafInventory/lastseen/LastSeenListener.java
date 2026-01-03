@@ -1,5 +1,4 @@
-
-package me.LeafPixel.LeafInventory;
+package me.LeafPixel.LeafInventory.lastseen;
 
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -14,6 +13,7 @@ public final class LastSeenListener implements Listener {
         this.lastSeen = lastSeen;
     }
 
+    
     @EventHandler
     public void onJoin(PlayerJoinEvent e) {
         lastSeen.touch(e.getPlayer().getUniqueId());

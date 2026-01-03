@@ -1,5 +1,4 @@
-
-package me.LeafPixel.LeafInventory;
+package me.LeafPixel.LeafInventory.lastseen;
 
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.plugin.java.JavaPlugin;

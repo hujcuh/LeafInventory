@@ -1,5 +1,4 @@
-
-package me.LeafPixel.LeafInventory;
+package me.LeafPixel.LeafInventory.workstation;
 
 import org.bukkit.World;
 import org.bukkit.event.EventHandler;

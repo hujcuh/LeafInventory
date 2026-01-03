@@ -1,12 +1,14 @@
+package me.LeafPixel.LeafInventory.workstation;
 
-package me.LeafPixel.LeafInventory;
-
+import me.LeafPixel.LeafInventory.lastseen.LastSeenManager; // ✅ 必须是这个
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+
+
 
 public final class WorkstationCleanupTask implements Runnable {
 
