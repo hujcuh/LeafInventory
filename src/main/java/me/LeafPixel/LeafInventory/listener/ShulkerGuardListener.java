@@ -59,7 +59,7 @@ public final class ShulkerGuardListener implements Listener {
         this.sessions = sessions;
     }
 
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = false)
     public void onClickWhileEditing(InventoryClickEvent e) {
         if (!(e.getWhoClicked() instanceof Player player)) return;
 
@@ -97,6 +97,18 @@ public final class ShulkerGuardListener implements Listener {
                 return;
             }
         }
+        
+
+        if (e.isShiftClick() || e.getAction() == InventoryAction.MOVE_TO_OTHER_INVENTORY) {
+            e.setCancelled(true);
+
+            // 只在玩家正在编辑“自己打开的那个 shulker UI”时处理，避免误伤其他界面
+            if (e.getView().getTopInventory() == s.ui) {
+                handleShiftMove(player, e, s);
+            }
+            return;
+        }
+
 
         // 3) Block dangerous click types and actions that frequently cause desync.
         if (DANGEROUS_CLICKS.contains(e.getClick())) {
@@ -104,9 +116,99 @@ public final class ShulkerGuardListener implements Listener {
             return;
         }
 
-        if (isDangerousAction(e.getAction())) {
-            e.setCancelled(true);
+            if (isDangerousAction(e.getAction())) {
+                e.setCancelled(true);
+            }
         }
+    
+        private static void handleShiftMove(Player player, InventoryClickEvent e, ShulkerEditSession s) {
+            Inventory clicked = e.getClickedInventory();
+            if (clicked == null) return;
+
+            ItemStack current = e.getCurrentItem();
+            if (current == null || current.getType().isAir()) return;
+
+            Inventory top = e.getView().getTopInventory();       // shulker UI
+            Inventory bottom = e.getView().getBottomInventory(); // player inventory
+
+            // 保险：不允许对 backing slot 本身 shift（避免任何可能替换/移动）
+            if (clicked.getType() == InventoryType.PLAYER && e.getSlot() == s.slot) return;
+
+            ItemStack moving = current.clone();
+            int moved;
+
+            if (clicked.equals(bottom)) {
+                // bottom -> top（玩家背包 -> 潜影盒UI）
+                moved = moveIntoInventory(top, moving);
+            } else if (clicked.equals(top)) {
+                // top -> bottom（潜影盒UI -> 玩家背包），必须跳过 backing slot
+                moved = moveIntoPlayerStorageSkippingSlot(player, moving, s.slot);
+            } else {
+                return;
+            }
+
+            if (moved <= 0) return;
+
+            int remain = current.getAmount() - moved;
+            if (remain <= 0) {
+                e.setCurrentItem(null);
+            } else {
+                current.setAmount(remain);
+                e.setCurrentItem(current);
+            }
+        }
+
+        private static int moveIntoInventory(Inventory target, ItemStack stack) {
+            int before = stack.getAmount();
+            var leftover = target.addItem(stack);
+            int left = leftover.values().stream().mapToInt(ItemStack::getAmount).sum();
+            return before - left;
+        }
+
+        /**
+         * 只往玩家“存储栏(0..35)”塞物品，并跳过 backing slot（s.slot）。
+         * 避免 Shift 导致 token shulker 被覆盖/移动。
+         */
+        private static int moveIntoPlayerStorageSkippingSlot(Player player, ItemStack stack, int skipSlot) {
+            int before = stack.getAmount();
+
+            var inv = player.getInventory();
+            ItemStack[] contents = inv.getStorageContents(); // 0..35
+
+            boolean validSkip = (skipSlot >= 0 && skipSlot < contents.length);
+            int max = stack.getMaxStackSize();
+
+            // 1) 先堆叠到相似物品
+            for (int i = 0; i < contents.length && stack.getAmount() > 0; i++) {
+                if (validSkip && i == skipSlot) continue;
+                ItemStack it = contents[i];
+                if (it == null || it.getType().isAir()) continue;
+                if (!it.isSimilar(stack)) continue;
+
+                int can = max - it.getAmount();
+                if (can <= 0) continue;
+
+                int add = Math.min(can, stack.getAmount());
+                it.setAmount(it.getAmount() + add);
+                stack.setAmount(stack.getAmount() - add);
+            }
+
+            // 2) 再放入空位
+            for (int i = 0; i < contents.length && stack.getAmount() > 0; i++) {
+                if (validSkip && i == skipSlot) continue;
+                ItemStack it = contents[i];
+                if (it != null && !it.getType().isAir()) continue;
+
+                int put = Math.min(max, stack.getAmount());
+                ItemStack placed = stack.clone();
+                placed.setAmount(put);
+                contents[i] = placed;
+                stack.setAmount(stack.getAmount() - put);
+            }
+
+            inv.setStorageContents(contents);
+
+            return before - stack.getAmount();
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
