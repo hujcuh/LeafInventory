@@ -32,6 +32,8 @@ A Minecraft server plugin to streamline inventory management (Paper).
 2. Put the jar into your server's `plugins/` folder.
 3. Restart the server (avoid `/reload` for safety).
 
+## Issue
+- Issue Tracker: https://github.com/hujcuh/LeafInventory/issues
 ---
 
 
