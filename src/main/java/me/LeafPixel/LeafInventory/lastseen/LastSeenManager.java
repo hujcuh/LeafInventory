@@ -1,5 +1,4 @@
-
-package me.LeafPixel.LeafInventory;
+package me.LeafPixel.LeafInventory.lastseen;
 
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -8,6 +7,9 @@ import java.io.File;
 import java.io.IOException;
 import java.util.*;
 
+/**
+ * Stores and persists player "last seen" timestamps.
+ */
 public final class LastSeenManager {
 
     private final JavaPlugin plugin;
@@ -25,11 +27,15 @@ public final class LastSeenManager {
         if (!file.exists()) {
             try {
                 plugin.getDataFolder().mkdirs();
-                file.createNewFile();
+                // English comment: Create the file if it does not exist.
+                if (!file.createNewFile()) {
+                    plugin.getLogger().warning("Failed to create lastseen.yml (already exists or cannot create).");
+                }
             } catch (IOException e) {
                 throw new RuntimeException("Cannot create lastseen.yml", e);
             }
         }
+
         yaml = YamlConfiguration.loadConfiguration(file);
 
         var sec = yaml.getConfigurationSection("lastSeen");
@@ -39,17 +45,22 @@ public final class LastSeenManager {
                     UUID uuid = UUID.fromString(key);
                     long t = sec.getLong(key);
                     lastSeen.put(uuid, t);
-                } catch (IllegalArgumentException ignored) {}
+                } catch (IllegalArgumentException ignored) {
+                    // English comment: Ignore invalid UUID keys.
+                }
             }
         }
     }
 
     public void save() {
+        // English comment: Defensive check to avoid NPE if load() was never called.
         if (yaml == null || file == null) return;
+
         yaml.set("lastSeen", null);
         for (var e : lastSeen.entrySet()) {
             yaml.set("lastSeen." + e.getKey(), e.getValue());
         }
+
         try {
             yaml.save(file);
         } catch (IOException e) {

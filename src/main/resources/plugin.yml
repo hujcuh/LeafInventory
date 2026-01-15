@@ -1,32 +1,69 @@
 name: LeafInventory
-version: 1.0
+version: 2.3.0
 author: LeafPixel
+
+
 main: me.LeafPixel.LeafInventory.LeafInventory
-api-version: '1.21'
+api-version: "1.21"
+
 permissions:
+  leafinventory.*:
+    description: "Grants access to all LeafInventory features"
+    default: false
+    children:
+      leafinventory.shulkerbox: true
+      leafinventory.enderchest: true
+      leafinventory.craftingtable: true
+      leafinventory.smithingtable: true
+      leafinventory.stonecutter: true
+      leafinventory.grindstone: true
+      leafinventory.cartographytable: true
+      leafinventory.loom: true
+      leafinventory.anvil: true
+      leafinventory.enchantingtable: true
+      leafinventory.furnace: true
+      leafinventory.blastfurnace: true
+      leafinventory.smoker: true
+      leafinventory.workstation.bypass: true
+
   leafinventory.shulkerbox:
     default: false
+
   leafinventory.enderchest:
     default: false
+
   leafinventory.craftingtable:
     default: false
+
   leafinventory.smithingtable:
     default: false
+
   leafinventory.stonecutter:
     default: false
+
   leafinventory.grindstone:
     default: false
+
   leafinventory.cartographytable:
     default: false
+
   leafinventory.loom:
     default: false
+
   leafinventory.anvil:
     default: false
+
   leafinventory.enchantingtable:
     default: false
+
   leafinventory.furnace:
     default: false
+
   leafinventory.blastfurnace:
     default: false
+
   leafinventory.smoker:
+    default: false
+
+  leafinventory.workstation.bypass:
     default: false

@@ -1,9 +1,9 @@
 # LeafInventory
-A Minecraft server plugin to streamline inventory management (Spigot / Paper). 
 
-> **Fork / Rebrand Notice**
->
-> LeafInventory is a rebranded fork derived from **percyqaz/UltimateInventory**.   
+A Minecraft server plugin to streamline inventory management (Paper).
+
+> Fork / Rebrand Notice  
+> LeafInventory is a rebranded fork derived from **percyqaz/UltimateInventory**.  
 > Upstream (original) repository: https://github.com/percyqaz/UltimateInventory  
 > This fork preserves the original MIT license and credits as required by the MIT license terms.
 
@@ -11,23 +11,18 @@ A Minecraft server plugin to streamline inventory management (Spigot / Paper).
 
 ## Features
 
-### Open ender chests, shulker boxes and crafting tables by right-clicking **in the inventory**
-
-
-### Open ender chests, shulker boxes and crafting tables by right-clicking **in your hand**
-
-
-> [!NOTE]
-> Bonus! If you are running **Paper**, you can also open anvils, stonecutters, grindstones, looms, smithing tables and cartography tables the same way as crafting tables. 
+- Open ender chests, shulker boxes, and crafting tables by right-clicking **in the inventory**
+- Open ender chests, shulker boxes, and crafting tables by right-clicking **while holding the item in hand**
+- Paper extras (configurable): open smithing tables, stonecutters, grindstones, looms, cartography tables, anvils, and enchanting tables in the same way
+- Optional workstation-backed furnaces (configurable): open furnace / blast furnace / smoker with per-player persistent inventories
 
 ---
 
 ## Requirements / Compatibility
 
-- **Java 21+** recommended/required for modern Paper (1.21+). 
-- Targeted at **1.21.x** servers; this fork is currently built against **Paper API 1.21.10** (see `pom.xml`).
-- `plugin.yml` entrypoint: `me.LeafPixel.LeafInventory.LeafInventory`. 
-
+- Java 21+ is recommended/required for modern Paper (1.21+).
+- Targeted at 1.21.x servers. This fork is built against Paper API 1.21.10 (see `pom.xml`).
+- `plugin.yml` entrypoint: `me.LeafPixel.LeafInventory.LeafInventory`.
 
 ---
 
@@ -39,46 +34,4 @@ A Minecraft server plugin to streamline inventory management (Spigot / Paper).
 
 ---
 
-## Permissions
 
-The plugin registers the following permission nodes (all default to `false`):
-
-- leafinventory.shulkerbox
-- leafinventory.enderchest
-- leafinventory.craftingtable
-- leafinventory.smithingtable
-- leafinventory.stonecutter
-- leafinventory.grindstone
-- leafinventory.cartographytable
-- leafinventory.loom
-- leafinventory.anvil
-- leafinventory.enchantingtable
-- leafinventory.enchantingtable
-- leafinventory.furnace`  
-- leafinventory.blastfurnace`  
-- leafinventory.smoker 
-- leafinventory.workstation.bypass
-
----
-
-## ⚠️ Caution: Duplication / Inventory Safety
-
-**Caution: while every care has been taken to remove duplication bugs, some may remain.** 
-
-Please consider your plugins carefully before installing. Duplication risks increase when combined with other inventory-manipulating plugins.
-
-Things to avoid in other plugins:
-- Plugins that rearrange inventories/ender chests outside of normal click/drag interactions
-- Plugins that let one player change another player's inventory/ender chest while they're online (e.g. `/invsee`-like features) 
-
-
----
-
-## Issues / Support
-Report bugs and feature requests here:
-- https://github.com/hujcuh/LeafInventory/issues
-
----
-
-## License
-MIT License. When redistributing copies or substantial portions, keep the copyright notice and license text. [6](https://git.moe.team/OpenSource/PaperMC)[7](https://cuteoao-my.sharepoint.com/personal/leaf_cuteoao_onmicrosoft_com/Documents/Microsoft%20Copilot%20Chat%20Files/LeafInventory.java)
