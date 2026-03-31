@@ -57,7 +57,7 @@ public final class ShulkerListener implements Listener {
 
         e.setCancelled(true);
         int slot = e.getSlot();
-        Scheduler.runNextTick(plugin, () -> shulker.requestOpenFromPlayerInventory(player, slot));
+        Scheduler.runEntityLater(plugin, player, 1L, () -> shulker.requestOpenFromPlayerInventory(player, slot));
     }
 
     @EventHandler(priority = EventPriority.NORMAL)
@@ -73,11 +73,11 @@ public final class ShulkerListener implements Listener {
         if (usePermissions && !player.hasPermission(permNode)) return;
 
         e.setCancelled(true);
-        Scheduler.runNextTick(plugin, () -> shulker.requestOpenFromMainHand(player));
+        Scheduler.runEntityLater(plugin, player, 1L, () -> shulker.requestOpenFromMainHand(player));
     }
 
     /**
-     * Critical: guard clicks while our shulker GUI is open.
+     *  guard clicks while our shulker GUI is open.
      */
     @EventHandler(priority = EventPriority.HIGHEST)
     public void onInventoryClick(InventoryClickEvent e) {

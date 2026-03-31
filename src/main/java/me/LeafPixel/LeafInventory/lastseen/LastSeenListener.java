@@ -18,13 +18,13 @@ public final class LastSeenListener implements Listener {
 
     @EventHandler
     public void onJoin(PlayerJoinEvent e) {
-        // English comment: Update last seen time when the player joins.
+        // Update last seen time when the player joins.
         lastSeen.touch(e.getPlayer().getUniqueId());
     }
 
     @EventHandler
     public void onQuit(PlayerQuitEvent e) {
-        // English comment: Update last seen time when the player quits.
+        // Update last seen time when the player quits.
         lastSeen.touch(e.getPlayer().getUniqueId());
     }
 }

@@ -16,6 +16,8 @@ import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.block.ShulkerBox;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 import java.util.*;
 
@@ -23,7 +25,7 @@ public final class ShulkerService {
 
     private final JavaPlugin plugin;
     private final ShulkerKeys keys;
-    private final Map<UUID, ShulkerSession> sessions = new HashMap<>();
+    private final ConcurrentMap<UUID, ShulkerSession> sessions = new ConcurrentHashMap<>();
 
     public ShulkerService(JavaPlugin plugin, ShulkerKeys keys) {
         this.plugin = plugin;

@@ -1,8 +1,7 @@
-
 package me.LeafPixel.LeafInventory.listener;
 
 import me.LeafPixel.LeafInventory.util.Scheduler;
-import me.LeafPixel.LeafInventory.workstation.WorkstationManager;
+import me.LeafPixel.LeafInventory.workstation.PortableWorkstationBackend;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -18,21 +17,19 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
 
 /**
- * WorkstationListener: opens per-player workstation inventories (furnace/blast/smoker).
- * Block/world allocation and storage remain in WorkstationManager.
+ * WorkstationListener: opens portable workstation backends (furnace/blast/smoker).
+ * Actual storage/backend implementation is delegated to PortableWorkstationBackend.
  */
 public final class WorkstationListener implements Listener {
-
     private final JavaPlugin plugin;
-    private final WorkstationManager ws;
+    private final PortableWorkstationBackend ws;
     private final boolean usePermissions;
-
     private final boolean enableFurnace;
     private final boolean enableBlastFurnace;
     private final boolean enableSmoker;
 
     public WorkstationListener(JavaPlugin plugin,
-                               WorkstationManager ws,
+                               PortableWorkstationBackend ws,
                                boolean usePermissions,
                                boolean enableFurnace,
                                boolean enableBlastFurnace,
@@ -48,7 +45,6 @@ public final class WorkstationListener implements Listener {
     @EventHandler(priority = EventPriority.LOW)
     public void onInventoryRightClick(InventoryClickEvent e) {
         if (!(e.getWhoClicked() instanceof Player player)) return;
-
         if (!e.isRightClick() || e.isShiftClick()) return;
 
         Inventory clicked = e.getClickedInventory();
@@ -60,12 +56,12 @@ public final class WorkstationListener implements Listener {
 
         Material type = current.getType();
         if (!isEnabledWorkstationItem(type)) return;
-
         if (usePermissions && !player.hasPermission(permissionOf(type))) return;
 
         e.setCancelled(true);
-        // English comment: Delay to next tick to avoid inventory mutation conflicts.
-        Scheduler.runNextTick(plugin, () -> openWorkstation(player, type));
+
+        // Delay to next entity tick to avoid inventory mutation conflicts.
+        Scheduler.runEntityLater(plugin, player, 1L, () -> openWorkstation(player, type));
     }
 
     @EventHandler(priority = EventPriority.NORMAL)
@@ -79,12 +75,12 @@ public final class WorkstationListener implements Listener {
 
         Material type = hand.getType();
         if (!isEnabledWorkstationItem(type)) return;
-
         if (usePermissions && !player.hasPermission(permissionOf(type))) return;
 
         e.setCancelled(true);
-        // English comment: Delay to next tick to avoid inventory mutation conflicts.
-        Scheduler.runNextTick(plugin, () -> openWorkstation(player, type));
+
+        // Delay to next entity tick to avoid inventory mutation conflicts.
+        Scheduler.runEntityLater(plugin, player, 1L, () -> openWorkstation(player, type));
     }
 
     private boolean isEnabledWorkstationItem(Material type) {
@@ -95,14 +91,16 @@ public final class WorkstationListener implements Listener {
     }
 
     private void openWorkstation(Player player, Material type) {
-        // English comment: Delegate to WorkstationManager which ensures blocks/world are ready.
-        if (type == Material.FURNACE) ws.openFurnace(player);
-        else if (type == Material.BLAST_FURNACE) ws.openBlastFurnace(player);
-        else if (type == Material.SMOKER) ws.openSmoker(player);
+        if (type == Material.FURNACE) {
+            ws.openFurnace(player);
+        } else if (type == Material.BLAST_FURNACE) {
+            ws.openBlastFurnace(player);
+        } else if (type == Material.SMOKER) {
+            ws.openSmoker(player);
+        }
     }
 
     private static String permissionOf(Material type) {
-        // English comment: Keep permission nodes centralized and predictable.
         if (type == Material.FURNACE) return "leafinventory.furnace";
         if (type == Material.BLAST_FURNACE) return "leafinventory.blastfurnace";
         return "leafinventory.smoker";

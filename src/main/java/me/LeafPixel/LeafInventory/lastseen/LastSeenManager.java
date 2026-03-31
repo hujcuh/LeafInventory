@@ -5,16 +5,18 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.*;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 /**
  * Stores and persists player "last seen" timestamps.
  */
 public final class LastSeenManager {
-
     private final JavaPlugin plugin;
-    private final Map<UUID, Long> lastSeen = new HashMap<>();
-
+    private final ConcurrentMap<UUID, Long> lastSeen = new ConcurrentHashMap<>();
     private File file;
     private YamlConfiguration yaml;
 
@@ -27,7 +29,7 @@ public final class LastSeenManager {
         if (!file.exists()) {
             try {
                 plugin.getDataFolder().mkdirs();
-                // English comment: Create the file if it does not exist.
+                // Create the file if it does not exist.
                 if (!file.createNewFile()) {
                     plugin.getLogger().warning("Failed to create lastseen.yml (already exists or cannot create).");
                 }
@@ -37,7 +39,6 @@ public final class LastSeenManager {
         }
 
         yaml = YamlConfiguration.loadConfiguration(file);
-
         var sec = yaml.getConfigurationSection("lastSeen");
         if (sec != null) {
             for (String key : sec.getKeys(false)) {
@@ -46,14 +47,14 @@ public final class LastSeenManager {
                     long t = sec.getLong(key);
                     lastSeen.put(uuid, t);
                 } catch (IllegalArgumentException ignored) {
-                    // English comment: Ignore invalid UUID keys.
+                    // Ignore invalid UUID keys.
                 }
             }
         }
     }
 
     public void save() {
-        // English comment: Defensive check to avoid NPE if load() was never called.
+        // Defensive check to avoid NPE if load() was never called.
         if (yaml == null || file == null) return;
 
         yaml.set("lastSeen", null);

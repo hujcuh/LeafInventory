@@ -15,16 +15,16 @@ public final class ShulkerSession {
     public final UUID playerId;
     public final UUID sessionId;
 
-    // English comment: A stable UUID stored in PDC to locate the real carrier item.
+    // A stable UUID stored in PDC to locate the real carrier item.
     public final UUID lockToken;
 
-    // English comment: Where the carrier item is expected to be.
+    // Where the carrier item is expected to be.
     public final CarrierBinding binding;
 
-    // English comment: Snapshot for fallback or debugging (do not trust as live reference).
+    // Snapshot for fallback or debugging (do not trust as live reference).
     public final ItemStack originalCarrierSnapshot;
 
-    // English comment: The inventory we opened for this session.
+    // The inventory we opened for this session.
     public Inventory virtualInventory;
 
     public State state = State.OPENING;

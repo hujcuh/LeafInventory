@@ -1,10 +1,11 @@
 name: LeafInventory
-version: 2.3.0
+version: 3.0.1
 author: LeafPixel
 
 
 main: me.LeafPixel.LeafInventory.LeafInventory
 api-version: "1.21"
+folia-supported: true
 
 permissions:
   leafinventory.*:

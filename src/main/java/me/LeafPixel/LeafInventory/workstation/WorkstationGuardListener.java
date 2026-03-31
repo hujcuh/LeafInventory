@@ -27,7 +27,7 @@ public final class WorkstationGuardListener implements Listener {
         if (e.getTo() == null || e.getTo().getWorld() == null) return;
         if (!e.getTo().getWorld().equals(workstationWorld)) return;
 
-        // English comment: Only players with bypass permission may enter workstation world.
+        // Only players with bypass permission may enter workstation world.
         if (!e.getPlayer().hasPermission(bypassPerm)) {
             e.setCancelled(true);
         }
@@ -38,7 +38,7 @@ public final class WorkstationGuardListener implements Listener {
         if (e.getTo() == null || e.getTo().getWorld() == null) return;
         if (!e.getTo().getWorld().equals(workstationWorld)) return;
 
-        // English comment: Only players with bypass permission may enter workstation world.
+        // Only players with bypass permission may enter workstation world.
         if (!e.getPlayer().hasPermission(bypassPerm)) {
             e.setCancelled(true);
         }
@@ -48,7 +48,7 @@ public final class WorkstationGuardListener implements Listener {
     public void onBreak(BlockBreakEvent e) {
         if (!e.getBlock().getWorld().equals(workstationWorld)) return;
 
-        // English comment: Disallow block break unless bypass permission is present.
+        // Disallow block break unless bypass permission is present.
         if (!e.getPlayer().hasPermission(bypassPerm)) {
             e.setCancelled(true);
         }
@@ -58,7 +58,7 @@ public final class WorkstationGuardListener implements Listener {
     public void onPlace(BlockPlaceEvent e) {
         if (!e.getBlock().getWorld().equals(workstationWorld)) return;
 
-        // English comment: Disallow block place unless bypass permission is present.
+        // Disallow block place unless bypass permission is present.
         if (!e.getPlayer().hasPermission(bypassPerm)) {
             e.setCancelled(true);
         }
@@ -69,7 +69,7 @@ public final class WorkstationGuardListener implements Listener {
         if (e.getClickedBlock() == null) return;
         if (!e.getClickedBlock().getWorld().equals(workstationWorld)) return;
 
-        // English comment: Disallow interaction unless bypass permission is present.
+        // Disallow interaction unless bypass permission is present.
         if (!e.getPlayer().hasPermission(bypassPerm)) {
             e.setCancelled(true);
         }

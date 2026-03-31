@@ -8,16 +8,17 @@ import org.bukkit.block.Smoker;
 import org.bukkit.block.BlastFurnace;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicInteger;
 
-import java.util.HashMap;
-import java.util.Map;
 import java.util.UUID;
 
 /**
  * Manages per-player workstation blocks in a dedicated world.
  * Each player gets an "index" which maps to a unique Y-layer.
  */
-public final class WorkstationManager {
+public final class WorkstationManager implements PortableWorkstationBackend  {
 
     private final JavaPlugin plugin;
     private final WorkstationIndexStore store;
@@ -29,8 +30,8 @@ public final class WorkstationManager {
     private int stepY;
 
     // UUID -> index
-    private final Map<UUID, Integer> indexMap = new HashMap<>();
-    private int nextIndex = 0;
+    private final ConcurrentMap<UUID, Integer> indexMap = new ConcurrentHashMap<>();
+    private final AtomicInteger nextIndex = new AtomicInteger(0);
 
     public WorkstationManager(JavaPlugin plugin) {
         this.plugin = plugin;
@@ -40,6 +41,7 @@ public final class WorkstationManager {
     /**
      * Initialize from config, create/load world, force-load chunk, load index map.
      */
+    @Override
     public void initFromConfig() {
         var cfg = plugin.getConfig();
 
@@ -49,60 +51,71 @@ public final class WorkstationManager {
         baseY = cfg.getInt("workstation.baseY", 64);
         stepY = cfg.getInt("workstation.stepY", 2);
 
-        // English comment: Create or load the dedicated world.
+        // Create or load the dedicated world.
         world = Bukkit.getWorld(worldName);
         if (world == null) {
             world = Bukkit.createWorld(new WorldCreator(worldName));
         }
 
-        // English comment: Force-load the base chunk to keep workstation blocks available.
+        // Force-load the base chunk to keep workstation blocks available.
         world.getChunkAt(baseChunkX, baseChunkZ).setForceLoaded(true);
 
-        // English comment: Load index allocation from disk.
+        // Load index allocation from disk.
         store.load();
         var data = store.read();
         indexMap.clear();
         indexMap.putAll(data.indexMap());
-        nextIndex = data.nextIndex();
+        nextIndex.set(data.nextIndex());
+
     }
 
     public World getWorld() {
         return world;
     }
+    
+    @Override
+    public World getGuardWorld() {
+        return world;
+    }
 
-    public int getOrAssignIndex(UUID uuid) {
+    public synchronized int getOrAssignIndex(UUID uuid) {
         Integer idx = indexMap.get(uuid);
         if (idx != null) return idx;
 
-        idx = nextIndex++;
+        idx = nextIndex.getAndIncrement();
         indexMap.put(uuid, idx);
 
-        // English comment: Persist mapping when a new index is allocated.
-        store.write(nextIndex, indexMap);
+        // Persist mapping when a new index is allocated.
+        store.write(nextIndex.get(), indexMap);
         return idx;
     }
 
     public void removePlayer(UUID uuid) {
         indexMap.remove(uuid);
-        store.write(nextIndex, indexMap);
+        store.write(nextIndex.get(), indexMap);
     }
 
+    @Override
     public void clearAll(UUID uuid) {
+
         clearOne(uuid, WorkstationType.FURNACE);
         clearOne(uuid, WorkstationType.BLAST_FURNACE);
         clearOne(uuid, WorkstationType.SMOKER);
     }
 
+    @Override
     public void openFurnace(Player player) {
         BlockState state = getOrCreateBlock(player.getUniqueId(), WorkstationType.FURNACE).getState();
         player.openInventory(((Furnace) state).getInventory());
     }
 
+    @Override
     public void openBlastFurnace(Player player) {
         BlockState state = getOrCreateBlock(player.getUniqueId(), WorkstationType.BLAST_FURNACE).getState();
         player.openInventory(((BlastFurnace) state).getInventory());
     }
 
+    @Override
     public void openSmoker(Player player) {
         BlockState state = getOrCreateBlock(player.getUniqueId(), WorkstationType.SMOKER).getState();
         player.openInventory(((Smoker) state).getInventory());
@@ -118,7 +131,7 @@ public final class WorkstationManager {
 
         Material want = type.material;
         if (b.getType() != want) {
-            // English comment: Do not apply physics; we want a stable hidden setup.
+            // Do not apply physics; we want a stable hidden setup.
             b.setType(want, false);
         }
         return b;
@@ -138,7 +151,7 @@ public final class WorkstationManager {
     private Location getBlockLocation(UUID uuid, WorkstationType type) {
         int idx = getOrAssignIndex(uuid);
 
-        // English comment: Place each workstation type at a different x offset inside the chunk.
+        // Place each workstation type at a different x offset inside the chunk.
         int xInChunk = 1 + type.ordinal();
         int zInChunk = 1;
 

@@ -37,16 +37,16 @@ public final class MenuListener implements Listener {
     public void onInventoryRightClick(InventoryClickEvent e) {
         if (!(e.getWhoClicked() instanceof Player player)) return;
 
-        // English comment: Block menu opening while a shulker session is active (prevents view switching issues).
+        //  Block menu opening while a shulker session is active (prevents view switching issues).
         if (shulker.isSessionOpen(player.getUniqueId())) return;
 
-        // English comment: We only react to a simple right-click without shift.
+        //  We only react to a simple right-click without shift.
         if (!e.isRightClick() || e.isShiftClick()) return;
 
         Inventory clicked = e.getClickedInventory();
         if (clicked == null) return;
 
-        // English comment: Stable baseline: only allow opening from player's own inventory.
+        //  Stable baseline: only allow opening from player's own inventory.
         if (clicked.getType() != InventoryType.PLAYER) return;
 
         ItemStack current = e.getCurrentItem();
@@ -55,22 +55,22 @@ public final class MenuListener implements Listener {
         Material type = current.getType();
         if (!menus.isSupportedMenuItem(type)) return;
 
-        // English comment: Delay to next tick to avoid inventory mutation conflicts during click event.
+        //  Delay to next tick to avoid inventory mutation conflicts during click event.
         e.setCancelled(true);
-        Scheduler.runNextTick(plugin, () -> menus.openFromItem(player, type));
+        Scheduler.runEntityLater(plugin, player, 1L, () -> menus.openFromItem(player, type));
     }
 
     @EventHandler(priority = EventPriority.NORMAL)
     public void onHandRightClick(PlayerInteractEvent e) {
-        // English comment: Only handle main-hand to avoid double-trigger.
+        //  Only handle main-hand to avoid double-trigger.
         if (e.getHand() != EquipmentSlot.HAND) return;
 
-        // English comment: Keep same behavior as original: only right-click air opens.
+        //  Keep same behavior as original: only right-click air opens.
         if (e.getAction() != Action.RIGHT_CLICK_AIR) return;
 
         Player player = e.getPlayer();
 
-        // English comment: Block menu opening while a shulker session is active (prevents view switching issues).
+        //  Block menu opening while a shulker session is active (prevents view switching issues).
         if (shulker.isSessionOpen(player.getUniqueId())) return;
 
         ItemStack hand = player.getInventory().getItemInMainHand();
@@ -80,6 +80,6 @@ public final class MenuListener implements Listener {
         if (!menus.isSupportedMenuItem(type)) return;
 
         e.setCancelled(true);
-        Scheduler.runNextTick(plugin, () -> menus.openFromItem(player, type));
+        Scheduler.runEntityLater(plugin, player, 1L, () -> menus.openFromItem(player, type));
     }
 }

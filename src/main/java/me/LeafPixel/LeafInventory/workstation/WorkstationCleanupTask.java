@@ -14,14 +14,14 @@ import java.util.concurrent.TimeUnit;
 public final class WorkstationCleanupTask implements Runnable {
 
     private final JavaPlugin plugin;
-    private final WorkstationManager ws;
+    private final PortableWorkstationBackend ws;
     private final LastSeenManager lastSeen;
     private final int inactiveDays;
 
     public WorkstationCleanupTask(JavaPlugin plugin,
-                                 WorkstationManager ws,
-                                 LastSeenManager lastSeen,
-                                 int inactiveDays) {
+                              PortableWorkstationBackend ws,
+                              LastSeenManager lastSeen,
+                              int inactiveDays) {
         this.plugin = plugin;
         this.ws = ws;
         this.lastSeen = lastSeen;
@@ -43,7 +43,7 @@ public final class WorkstationCleanupTask implements Runnable {
             if (seen > 0 && seen < cutoff) {
                 ws.clearAll(uuid);
 
-                // English comment: Touch to avoid repeated clearing spam, then persist.
+                //  Touch to avoid repeated clearing spam, then persist.
                 lastSeen.touch(uuid);
                 plugin.getLogger().info("[LeafInventory] Cleared workstation inventories for inactive player: " + uuid);
             }

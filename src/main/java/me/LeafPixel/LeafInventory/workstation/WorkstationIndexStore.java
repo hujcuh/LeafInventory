@@ -39,7 +39,7 @@ public final class WorkstationIndexStore {
     }
 
     public Data read() {
-        // English comment: Ensure load() is called before read().
+        //Ensure load() is called before read().
         if (yaml == null) load();
 
         int nextIndex = yaml.getInt("nextIndex", 0);
@@ -53,7 +53,7 @@ public final class WorkstationIndexStore {
                     int idx = sec.getInt(key);
                     map.put(uuid, idx);
                 } catch (IllegalArgumentException ignored) {
-                    // English comment: Ignore invalid UUID keys.
+                    //Ignore invalid UUID keys.
                 }
             }
         }

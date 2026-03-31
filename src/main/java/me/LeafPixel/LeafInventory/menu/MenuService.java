@@ -24,10 +24,10 @@ public final class MenuService {
 
     private final JavaPlugin plugin;
 
-    // English comment: Keep a reference for reload support (scheme B).
+    // Keep a reference for reload support (scheme B).
     private FileConfiguration config;
 
-    // English comment: Permission gating is controlled by plugin config.
+    // Permission gating is controlled by plugin config.
     private boolean usePermissions;
 
     // Feature toggles (cached; updated by reload()).
@@ -55,10 +55,10 @@ public final class MenuService {
      * Call this after plugin.reloadConfig() if you implement a reload command.
      */
     public void reload(FileConfiguration newConfig) {
-        // English comment: Store the latest configuration reference.
+        // Store the latest configuration reference.
         this.config = newConfig;
 
-        // English comment: Read all toggles from config each reload.
+        // Read all toggles from config each reload.
         this.usePermissions = config.getBoolean("usePermissions", false);
 
         this.enableEnderChest = config.getBoolean("enableEnderChest", true);
@@ -151,18 +151,18 @@ public final class MenuService {
 
         Location loc = player.getLocation();
 
-        // English comment: Prefer builder-based creation (recommended by MenuType API docs). [1](https://helpch.at/docs/1.21.1/org/bukkit/inventory/MenuType.Typed.html)[2](https://www.spigotmc.org/threads/menutype-api-and-how-to-use-it-1-21-1.662556/)
+        // Prefer builder-based creation (recommended by MenuType API docs). [1](https://helpch.at/docs/1.21.1/org/bukkit/inventory/MenuType.Typed.html)[2](https://www.spigotmc.org/threads/menutype-api-and-how-to-use-it-1-21-1.662556/)
         InventoryViewBuilder<? extends InventoryView> builder = menuType.builder();
 
         if (builder instanceof LocationInventoryViewBuilder<?> locBuilder) {
-            // English comment: Use player's location; do not require reachability for "portable" menus.
+            // Use player's location; do not require reachability for "portable" menus.
             locBuilder.location(loc).checkReachable(false);
             InventoryView view = ((LocationInventoryViewBuilder<?>) locBuilder).build(player);
             player.openInventory(view);
             return;
         }
 
-        // English comment: Non-location builders can still build a view for the player.
+        // Non-location builders can still build a view for the player.
         InventoryView view = builder.build(player);
         player.openInventory(view);
     }

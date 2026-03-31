@@ -1,13 +1,16 @@
 package me.LeafPixel.LeafInventory;
 
+import me.LeafPixel.LeafInventory.lastseen.LastSeenListener;
+import me.LeafPixel.LeafInventory.lastseen.LastSeenManager;
 import me.LeafPixel.LeafInventory.listener.MenuListener;
 import me.LeafPixel.LeafInventory.listener.ShulkerListener;
 import me.LeafPixel.LeafInventory.listener.WorkstationListener;
-import me.LeafPixel.LeafInventory.lastseen.LastSeenListener;
-import me.LeafPixel.LeafInventory.lastseen.LastSeenManager;
 import me.LeafPixel.LeafInventory.menu.MenuService;
 import me.LeafPixel.LeafInventory.shulker.ShulkerKeys;
 import me.LeafPixel.LeafInventory.shulker.ShulkerService;
+import me.LeafPixel.LeafInventory.util.Scheduler;
+import me.LeafPixel.LeafInventory.workstation.FoliaVirtualWorkstationBackend;
+import me.LeafPixel.LeafInventory.workstation.PortableWorkstationBackend;
 import me.LeafPixel.LeafInventory.workstation.WorkstationCleanupTask;
 import me.LeafPixel.LeafInventory.workstation.WorkstationGuardListener;
 import me.LeafPixel.LeafInventory.workstation.WorkstationManager;
@@ -17,11 +20,11 @@ import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
 
 /**
- * Main plugin class (Paper-only).
+ * Main plugin class (Paper/Folia aware bootstrap).
  */
 public final class LeafInventory extends JavaPlugin {
 
-    private WorkstationManager workstationManager;
+    private PortableWorkstationBackend workstationBackend;
     private LastSeenManager lastSeenManager;
     private ShulkerService shulkerService;
     private MenuService menuService;
@@ -40,16 +43,21 @@ public final class LeafInventory extends JavaPlugin {
         saveConfig();
 
         boolean usePermissions = config.getBoolean("usePermissions", false);
+        boolean folia = isFolia();
 
         // 2) Initialize services
         ShulkerKeys shulkerKeys = new ShulkerKeys(this);
         this.shulkerService = new ShulkerService(this, shulkerKeys);
-
         this.menuService = new MenuService(this, config);
 
-        // 3) Workstation system
-        this.workstationManager = new WorkstationManager(this);
-        this.workstationManager.initFromConfig();
+        // 3) Select workstation backend by platform
+        if (folia) {
+            this.workstationBackend = new FoliaVirtualWorkstationBackend(this);
+            getLogger().info("Detected Folia. Using virtual workstation backend.");
+        } else {
+            this.workstationBackend = new WorkstationManager(this);
+        }
+        this.workstationBackend.initFromConfig();
 
         // 4) LastSeen manager for cleanup
         this.lastSeenManager = new LastSeenManager(this);
@@ -70,10 +78,11 @@ public final class LeafInventory extends JavaPlugin {
         boolean enableFurnace = config.getBoolean("enableFurnace", true);
         boolean enableBlastFurnace = config.getBoolean("enableBlastFurnace", true);
         boolean enableSmoker = config.getBoolean("enableSmoker", true);
+
         pm.registerEvents(
                 new WorkstationListener(
                         this,
-                        workstationManager,
+                        workstationBackend,
                         usePermissions,
                         enableFurnace,
                         enableBlastFurnace,
@@ -83,7 +92,10 @@ public final class LeafInventory extends JavaPlugin {
         );
 
         String bypassPerm = config.getString("workstation.bypassPermission", "leafinventory.workstation.bypass");
-        pm.registerEvents(new WorkstationGuardListener(workstationManager.getWorld(), bypassPerm), this);
+        var guardWorld = workstationBackend.getGuardWorld();
+        if (guardWorld != null) {
+            pm.registerEvents(new WorkstationGuardListener(guardWorld, bypassPerm), this);
+        }
 
         pm.registerEvents(new LastSeenListener(lastSeenManager), this);
 
@@ -92,21 +104,26 @@ public final class LeafInventory extends JavaPlugin {
         int intervalMin = config.getInt("cleanup.intervalMinutes", 60);
         long periodTicks = Math.max(1, intervalMin) * 60L * 20L;
 
-        Bukkit.getScheduler().runTaskTimer(
+        Scheduler.runGlobalTimer(
                 this,
-                new WorkstationCleanupTask(this, workstationManager, lastSeenManager, inactiveDays),
                 20L,
-                periodTicks
+                periodTicks,
+                new WorkstationCleanupTask(this, workstationBackend, lastSeenManager, inactiveDays)
         );
 
-        getLogger().info("LeafInventory enabled (Paper-only).");
+        getLogger().info("LeafInventory enabled" + (folia ? " (Folia detected)" : " (Paper mode)") + ".");
     }
 
     @Override
     public void onDisable() {
+        if (workstationBackend != null) {
+            workstationBackend.shutdown();
+        }
+
         if (lastSeenManager != null) {
             lastSeenManager.save();
         }
+
         getLogger().info("LeafInventory disabled.");
     }
 
@@ -143,10 +160,10 @@ public final class LeafInventory extends JavaPlugin {
         // Permission gating
         config.addDefault("usePermissions", false);
 
-        // Permission nodes (集中配置，方便你后面扩展)
+        // Permission nodes
         config.addDefault("permissions.shulkerbox", "leafinventory.shulkerbox");
 
-        // Shulker lock TTL (秒). <=0 表示不启用 TTL，自行手动处理
+        // Shulker lock TTL (seconds). <=0 means disabled.
         config.addDefault("shulker.lockMaxAgeSeconds", 120);
 
         config.options().copyDefaults(true);
@@ -156,7 +173,17 @@ public final class LeafInventory extends JavaPlugin {
         try {
             Class.forName("org.bukkit.inventory.view.builder.InventoryViewBuilder");
             return true;
-        } catch (ClassNotFoundException ignored) { }
+        } catch (ClassNotFoundException ignored) {
+        }
+        return false;
+    }
+
+    private boolean isFolia() {
+        try {
+            Class.forName("io.papermc.paper.threadedregions.RegionizedServer");
+            return true;
+        } catch (ClassNotFoundException ignored) {
+        }
         return false;
     }
 }
