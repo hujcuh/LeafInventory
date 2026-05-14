@@ -1,8 +1,6 @@
 name: LeafInventory
-version: 3.0.1
+version: ${project.version}
 author: LeafPixel
-
-
 main: me.LeafPixel.LeafInventory.LeafInventory
 api-version: "1.21"
 folia-supported: true
@@ -26,45 +24,75 @@ permissions:
       leafinventory.blastfurnace: true
       leafinventory.smoker: true
       leafinventory.workstation.bypass: true
+      leafinventory.enderchest.large: true
+      leafinventory.shulkerbox.large.create: true
+      leafinventory.shulkerbox.large.open: true
 
   leafinventory.shulkerbox:
+    description: "Allows opening regular shulker boxes from inventory or hand"
     default: false
 
   leafinventory.enderchest:
+    description: "Allows opening ender chest from inventory or hand"
     default: false
 
   leafinventory.craftingtable:
+    description: "Allows opening crafting table from inventory or hand"
     default: false
 
   leafinventory.smithingtable:
+    description: "Allows opening smithing table from inventory or hand"
     default: false
 
   leafinventory.stonecutter:
+    description: "Allows opening stonecutter from inventory or hand"
     default: false
 
   leafinventory.grindstone:
+    description: "Allows opening grindstone from inventory or hand"
     default: false
 
   leafinventory.cartographytable:
+    description: "Allows opening cartography table from inventory or hand"
     default: false
 
   leafinventory.loom:
+    description: "Allows opening loom from inventory or hand"
     default: false
 
   leafinventory.anvil:
+    description: "Allows opening anvil from inventory or hand"
     default: false
 
   leafinventory.enchantingtable:
+    description: "Allows opening enchanting table from inventory or hand"
     default: false
 
   leafinventory.furnace:
+    description: "Allows opening portable furnace"
     default: false
 
   leafinventory.blastfurnace:
+    description: "Allows opening portable blast furnace"
     default: false
 
   leafinventory.smoker:
+    description: "Allows opening portable smoker"
     default: false
 
   leafinventory.workstation.bypass:
+    description: "Allows bypassing workstation world protection where applicable"
     default: false
+
+  leafinventory.enderchest.large:
+    description: "Allows using the 54-slot large ender chest when enabled"
+    default: false
+
+  leafinventory.shulkerbox.large.create:
+    description: "Allows creating 54-slot large shulker boxes when enabled"
+    default: false
+
+  leafinventory.shulkerbox.large.open:
+    description: "Allows opening 54-slot large shulker boxes when enabled"
+    default: false
+    
