@@ -14,7 +14,7 @@ LeafInventory is maintained in separate version lines.
 | LeafInventory version | Server target | Java | Status | Branch |
 | --- | --- | --- | --- | --- |
 | 3.x | Paper/Folia 1.21.4 - 1.21.11 | Java 21+ | Maintenance | `legacy/1.21.x` |
-| 4.x | Paper/Folia 26.1.x | Java 21+ / server-required Java | Active development | `main` |
+| 4.x | Paper/Folia 26.1.x | Java 25+ | Active development | `main` |
 
 ### Which version should I use?
 

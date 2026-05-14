@@ -1,0 +1,103 @@
+# LeafInventory 4.x configuration
+# Target: Paper/Folia 26.1.x
+
+# If enabled, most features require their corresponding permission node.
+usePermissions: false
+
+# ----------------------------
+# Portable regular containers
+# ----------------------------
+
+enableShulkerbox: true
+enableEnderChest: true
+enableCraftingTable: true
+
+# ----------------------------
+# Portable Paper menus
+# ----------------------------
+
+enableSmithingTable: true
+enableStoneCutter: true
+enableGrindstone: true
+enableCartographyTable: true
+enableLoom: true
+enableAnvil: false
+enableEnchantingTable: true
+
+# ----------------------------
+# Portable furnace workstations
+# ----------------------------
+
+enableFurnace: true
+enableBlastFurnace: true
+enableSmoker: true
+
+# ----------------------------
+# Virtual workstation backend
+# ----------------------------
+# 4.x should prefer virtual workstation data for Folia safety.
+# Legacy hidden-world workstation settings are kept for migration/fallback only.
+
+workstation:
+  worldName: "leafinventory_workstations"
+  baseChunkX: 0
+  baseChunkZ: 0
+  baseY: 64
+  stepY: 2
+  bypassPermission: "leafinventory.workstation.bypass"
+
+cleanup:
+  inactiveDays: 30
+  intervalMinutes: 60
+
+# ----------------------------
+# Large Ender Chest
+# ----------------------------
+# This feature opens a 54-slot virtual ender chest for players with permission.
+#
+# Slots 0-26:
+#   Mirror the player's vanilla ender chest when syncVanillaRows is true.
+#
+# Slots 27-53:
+#   Stored by LeafInventory in large-enderchests.yml.
+#
+# If a player loses permission later, their extra storage is not deleted.
+# They simply fall back to the vanilla 27-slot ender chest until permission returns.
+
+largeEnderChest:
+  enabled: false
+  permission: "leafinventory.enderchest.large"
+  rows: 6
+  syncVanillaRows: true
+  saveIntervalSeconds: 30
+  title: "Large Ender Chest"
+
+# ----------------------------
+# Large Shulker Box - planned
+# ----------------------------
+# This section is reserved for the 54-slot large shulker box feature.
+# The implementation will be added after Large Ender Chest is stable.
+
+largeShulker:
+  enabled: false
+  rows: 6
+
+  permissions:
+    create: "leafinventory.shulkerbox.large.create"
+    open: "leafinventory.shulkerbox.large.open"
+
+  allowOpenWithoutPermission: true
+  requireOwnerToOpen: false
+
+  placement:
+    enabled: true
+    cancelVanillaOpen: true
+    preventPistonMove: true
+    handleExplosionDrop: true
+    blockHopperInteraction: true
+    convertDuplicatePlacedBlocksToVanilla: true
+
+  duplicateItemPolicy: "shared"
+  saveIntervalSeconds: 30
+  title: "Large Shulker Box"
+  

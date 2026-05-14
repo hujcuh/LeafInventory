@@ -15,16 +15,11 @@
     <url>https://github.com/hujcuh/LeafInventory</url>
 
     <properties>
-        <!--
-            4.x targets Paper/Folia 26.1.x.
-
-            Folia 26.1.x currently publishes folia-api under dev.folia.
-            If Maven cannot resolve this version range on your machine,
-            replace it with the exact version available in PaperMC's Maven repository.
-        -->
         <folia.api.version>[26.1.2.build,)</folia.api.version>
 
+        <!-- Folia 26.1.x API currently requires Java 25 classfile compatibility. -->
         <maven.compiler.release>25</maven.compiler.release>
+
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
     </properties>
@@ -43,10 +38,6 @@
     </repositories>
 
     <dependencies>
-        <!--
-            Folia API includes the Paper/Bukkit API surface plus Folia scheduler APIs.
-            Server provides this dependency at runtime.
-        -->
         <dependency>
             <groupId>dev.folia</groupId>
             <artifactId>folia-api</artifactId>
@@ -66,6 +57,28 @@
         </resources>
 
         <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-enforcer-plugin</artifactId>
+                <version>3.5.0</version>
+                <executions>
+                    <execution>
+                        <id>enforce-java</id>
+                        <goals>
+                            <goal>enforce</goal>
+                        </goals>
+                        <configuration>
+                            <rules>
+                                <requireJavaVersion>
+                                    <version>[25,)</version>
+                                    <message>LeafInventory 4.x requires JDK 25+ to build for Paper/Folia 26.1.x.</message>
+                                </requireJavaVersion>
+                            </rules>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>

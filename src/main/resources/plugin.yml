@@ -2,7 +2,7 @@ name: LeafInventory
 version: ${project.version}
 author: LeafPixel
 main: me.LeafPixel.LeafInventory.LeafInventory
-api-version: "1.21"
+api-version: '26.1.2'
 folia-supported: true
 
 permissions:
@@ -95,4 +95,3 @@ permissions:
   leafinventory.shulkerbox.large.open:
     description: "Allows opening 54-slot large shulker boxes when enabled"
     default: false
-    
