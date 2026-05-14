@@ -18,8 +18,11 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
 
 /**
- * MenuListener: routes "open menu from item" events to MenuService.
- * Also blocks menu opening while a shulker session is active to avoid view switching edge-cases.
+ * Routes portable menu open events to MenuService.
+ *
+ * This listener avoids opening other menus while a shulker session is active,
+ * because switching views while a shulker is being edited can cause unsafe
+ * close/writeback ordering.
  */
 public final class MenuListener implements Listener {
 
@@ -33,53 +36,84 @@ public final class MenuListener implements Listener {
         this.shulker = shulker;
     }
 
+    /**
+     * Right-click a supported item inside the player's inventory.
+     */
     @EventHandler(priority = EventPriority.LOW)
-    public void onInventoryRightClick(InventoryClickEvent e) {
-        if (!(e.getWhoClicked() instanceof Player player)) return;
+    public void onInventoryRightClick(InventoryClickEvent event) {
+        if (!(event.getWhoClicked() instanceof Player player)) {
+            return;
+        }
 
-        //  Block menu opening while a shulker session is active (prevents view switching issues).
-        if (shulker.isSessionOpen(player.getUniqueId())) return;
+        if (shulker.isSessionOpen(player.getUniqueId())) {
+            return;
+        }
 
-        //  We only react to a simple right-click without shift.
-        if (!e.isRightClick() || e.isShiftClick()) return;
+        if (!event.isRightClick() || event.isShiftClick()) {
+            return;
+        }
 
-        Inventory clicked = e.getClickedInventory();
-        if (clicked == null) return;
+        Inventory clicked = event.getClickedInventory();
+        if (clicked == null) {
+            return;
+        }
 
-        //  Stable baseline: only allow opening from player's own inventory.
-        if (clicked.getType() != InventoryType.PLAYER) return;
+        if (clicked.getType() != InventoryType.PLAYER) {
+            return;
+        }
 
-        ItemStack current = e.getCurrentItem();
-        if (current == null || current.getAmount() != 1) return;
+        ItemStack item = event.getCurrentItem();
+        if (item == null || item.getType().isAir()) {
+            return;
+        }
 
-        Material type = current.getType();
-        if (!menus.isSupportedMenuItem(type)) return;
+        Material type = item.getType();
 
-        //  Delay to next tick to avoid inventory mutation conflicts during click event.
-        e.setCancelled(true);
+        if (!menus.isSupportedMenuItem(type)) {
+            return;
+        }
+
+        event.setCancelled(true);
+
         Scheduler.runEntityLater(plugin, player, 1L, () -> menus.openFromItem(player, type));
     }
 
+    /**
+     * Right-click air or block while holding a supported item in the main hand.
+     *
+     * RIGHT_CLICK_BLOCK is handled too, so the player does not accidentally place
+     * or interact with the item when they intended to open the portable menu.
+     */
     @EventHandler(priority = EventPriority.NORMAL)
-    public void onHandRightClick(PlayerInteractEvent e) {
-        //  Only handle main-hand to avoid double-trigger.
-        if (e.getHand() != EquipmentSlot.HAND) return;
+    public void onHandRightClick(PlayerInteractEvent event) {
+        if (event.getHand() != EquipmentSlot.HAND) {
+            return;
+        }
 
-        //  Keep same behavior as original: only right-click air opens.
-        if (e.getAction() != Action.RIGHT_CLICK_AIR) return;
+        Action action = event.getAction();
+        if (action != Action.RIGHT_CLICK_AIR && action != Action.RIGHT_CLICK_BLOCK) {
+            return;
+        }
 
-        Player player = e.getPlayer();
+        Player player = event.getPlayer();
 
-        //  Block menu opening while a shulker session is active (prevents view switching issues).
-        if (shulker.isSessionOpen(player.getUniqueId())) return;
+        if (shulker.isSessionOpen(player.getUniqueId())) {
+            return;
+        }
 
-        ItemStack hand = player.getInventory().getItemInMainHand();
-        if (hand == null || hand.getAmount() != 1) return;
+        ItemStack item = player.getInventory().getItemInMainHand();
+        if (item == null || item.getType().isAir()) {
+            return;
+        }
 
-        Material type = hand.getType();
-        if (!menus.isSupportedMenuItem(type)) return;
+        Material type = item.getType();
 
-        e.setCancelled(true);
+        if (!menus.isSupportedMenuItem(type)) {
+            return;
+        }
+
+        event.setCancelled(true);
+
         Scheduler.runEntityLater(plugin, player, 1L, () -> menus.openFromItem(player, type));
     }
 }

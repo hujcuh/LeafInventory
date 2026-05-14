@@ -15,8 +15,9 @@ import org.bukkit.plugin.java.JavaPlugin;
 /**
  * MenuService opens vanilla-like menus using Paper's MenuType API.
  *
- * 4.x also integrates LargeEnderChestService:
- * - If large ender chest is enabled and the player has permission, ENDER_CHEST opens a 54-slot virtual GUI.
+ * 4.x integrates LargeEnderChestService:
+ * - If large ender chest is enabled and the player has permission,
+ *   ENDER_CHEST opens a 54-slot virtual GUI.
  * - Otherwise it falls back to the vanilla 27-slot ender chest.
  */
 public final class MenuService {
@@ -185,18 +186,19 @@ public final class MenuService {
         if (player.getOpenInventory() != null
                 && player.getOpenInventory().getTopInventory().getType() == InventoryType.ENDER_CHEST) {
             player.closeInventory();
-            player.playSound(player, Sound.BLOCK_ENDER_CHEST_CLOSE, SoundCategory.BLOCKS, 1.0f, 1.2f);
+            playEnderChestClose(player);
             return;
         }
 
         player.openInventory(player.getEnderChest());
-        player.playSound(player, Sound.BLOCK_ENDER_CHEST_OPEN, SoundCategory.BLOCKS, 1.0f, 1.2f);
+        playEnderChestOpen(player);
     }
 
     /**
      * Opens a vanilla menu if the player is not already viewing that menu type.
      *
-     * This uses MenuType#create for compatibility and simplicity.
+     * If this method causes a MenuType generic/API error on 26.1.x,
+     * send me the compile error and I will switch this to the builder-based API.
      */
     private void openMenuIfNotAlready(
             HumanEntity player,
@@ -210,5 +212,27 @@ public final class MenuService {
 
         InventoryView view = menuType.create(player);
         player.openInventory(view);
+    }
+
+    @SuppressWarnings("null")
+    private static void playEnderChestOpen(Player player) {
+        player.playSound(
+                player,
+                Sound.BLOCK_ENDER_CHEST_OPEN,
+                SoundCategory.BLOCKS,
+                1.0f,
+                1.2f
+        );
+    }
+
+    @SuppressWarnings("null")
+    private static void playEnderChestClose(Player player) {
+        player.playSound(
+                player,
+                Sound.BLOCK_ENDER_CHEST_CLOSE,
+                SoundCategory.BLOCKS,
+                1.0f,
+                1.2f
+        );
     }
 }
