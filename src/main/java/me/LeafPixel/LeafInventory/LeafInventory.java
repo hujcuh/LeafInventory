@@ -1,9 +1,11 @@
 package me.LeafPixel.LeafInventory;
 
 import io.papermc.paper.threadedregions.scheduler.ScheduledTask;
+import me.LeafPixel.LeafInventory.command.LeafInventoryCommand;
 import me.LeafPixel.LeafInventory.enderchest.LargeEnderChestListener;
 import me.LeafPixel.LeafInventory.enderchest.LargeEnderChestService;
 import me.LeafPixel.LeafInventory.enderchest.PlacedEnderChestListener;
+import me.LeafPixel.LeafInventory.largeshulker.LargeShulkerBlockListener;
 import me.LeafPixel.LeafInventory.largeshulker.LargeShulkerListener;
 import me.LeafPixel.LeafInventory.largeshulker.LargeShulkerService;
 import me.LeafPixel.LeafInventory.lastseen.LastSeenListener;
@@ -14,13 +16,14 @@ import me.LeafPixel.LeafInventory.listener.WorkstationListener;
 import me.LeafPixel.LeafInventory.menu.MenuService;
 import me.LeafPixel.LeafInventory.shulker.ShulkerKeys;
 import me.LeafPixel.LeafInventory.shulker.ShulkerService;
+import me.LeafPixel.LeafInventory.util.Scheduler;
 import me.LeafPixel.LeafInventory.workstation.FoliaVirtualWorkstationBackend;
 import me.LeafPixel.LeafInventory.workstation.PortableWorkstationBackend;
 import me.LeafPixel.LeafInventory.workstation.WorkstationCleanupTask;
 import me.LeafPixel.LeafInventory.workstation.WorkstationGuardListener;
-import me.LeafPixel.LeafInventory.largeshulker.LargeShulkerBlockListener;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
+import org.bukkit.command.PluginCommand;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -69,6 +72,7 @@ public final class LeafInventory extends JavaPlugin {
         setupConfig();
         initServices();
         registerListeners();
+        registerCommands();
         startTasks();
 
         getLogger().info("LeafInventory enabled.");
@@ -81,18 +85,14 @@ public final class LeafInventory extends JavaPlugin {
     }
 
     /*
-     * ------------------------------------------------------------
      * Bootstrap
-     * ------------------------------------------------------------
      */
-
     private void setupConfig() {
         saveDefaultConfig();
 
         FileConfiguration config = getConfig();
         applyDefaults(config);
         config.options().copyDefaults(true);
-
         saveConfig();
     }
 
@@ -140,14 +140,17 @@ public final class LeafInventory extends JavaPlugin {
                 new LargeEnderChestListener(largeEnderChestService),
                 this
         );
+
         pluginManager.registerEvents(
                 new PlacedEnderChestListener(this, largeEnderChestService),
                 this
         );
+
         pluginManager.registerEvents(
                 new LargeShulkerListener(this, largeShulkerService),
                 this
         );
+
         pluginManager.registerEvents(
                 new LargeShulkerBlockListener(this, largeShulkerService),
                 this
@@ -168,12 +171,31 @@ public final class LeafInventory extends JavaPlugin {
         registerWorkstationGuardIfNeeded(pluginManager, config);
     }
 
+    private void registerCommands() {
+        LeafInventoryCommand command = new LeafInventoryCommand(
+                this,
+                largeEnderChestService,
+                largeShulkerService
+        );
+
+        PluginCommand pluginCommand = getCommand("leafinventory");
+
+        if (pluginCommand == null) {
+            getLogger().warning("Command 'leafinventory' is not defined in plugin.yml.");
+            return;
+        }
+
+        pluginCommand.setExecutor(command);
+        pluginCommand.setTabCompleter(command);
+    }
+
     private void registerWorkstationGuardIfNeeded(PluginManager pluginManager, FileConfiguration config) {
         if (workstationBackend == null) {
             return;
         }
 
         World guardWorld = workstationBackend.getGuardWorld();
+
         if (guardWorld == null) {
             return;
         }
@@ -190,8 +212,14 @@ public final class LeafInventory extends JavaPlugin {
     }
 
     private void startTasks() {
-        largeEnderChestService.startAutoSave();
-        largeShulkerService.startAutoSave();
+        if (largeEnderChestService != null) {
+            largeEnderChestService.startAutoSave();
+        }
+
+        if (largeShulkerService != null) {
+            largeShulkerService.startAutoSave();
+        }
+
         startWorkstationCleanupTask();
     }
 
@@ -200,36 +228,32 @@ public final class LeafInventory extends JavaPlugin {
             workstationCleanupTask.cancel();
             workstationCleanupTask = null;
         }
+
+        if (largeEnderChestService != null) {
+            largeEnderChestService.stopAutoSave();
+        }
+
+        if (largeShulkerService != null) {
+            largeShulkerService.stopAutoSave();
+        }
     }
 
     private void shutdownServices() {
-        /*
-         * Save and close large shulker sessions before regular backend shutdown.
-         */
         if (largeShulkerService != null) {
             largeShulkerService.shutdown();
             largeShulkerService = null;
         }
 
-        /*
-         * Save and close large ender chest sessions.
-         */
         if (largeEnderChestService != null) {
             largeEnderChestService.shutdown();
             largeEnderChestService = null;
         }
 
-        /*
-         * Shutdown workstation backend.
-         */
         if (workstationBackend != null) {
             workstationBackend.shutdown();
             workstationBackend = null;
         }
 
-        /*
-         * Save last-seen data last.
-         */
         if (lastSeenManager != null) {
             lastSeenManager.save();
             lastSeenManager = null;
@@ -237,62 +261,40 @@ public final class LeafInventory extends JavaPlugin {
     }
 
     /*
-     * ------------------------------------------------------------
      * Scheduled tasks
-     * ------------------------------------------------------------
      */
-
     private void startWorkstationCleanupTask() {
         FileConfiguration config = getConfig();
 
-        int inactiveDays = config.getInt("cleanup.inactiveDays", 30);
-        int intervalMinutes = Math.max(1, config.getInt("cleanup.intervalMinutes", 60));
+        int inactiveDays = config.getInt("workstation.cleanup.inactiveDays", 30);
+        int intervalMinutes = config.getInt("workstation.cleanup.intervalMinutes", 60);
 
-        if (inactiveDays <= 0) {
-            getLogger().info("Workstation cleanup is disabled because cleanup.inactiveDays <= 0.");
+        if (inactiveDays <= 0 || intervalMinutes <= 0) {
             return;
         }
 
-        WorkstationCleanupTask cleanupTask = new WorkstationCleanupTask(
+        workstationCleanupTask = Scheduler.runGlobalTimer(
                 this,
-                workstationBackend,
-                lastSeenManager,
-                inactiveDays
-        );
-
-        long initialDelayTicks = 20L * 60L;
-        long periodTicks = 20L * 60L * intervalMinutes;
-
-        this.workstationCleanupTask = Bukkit.getGlobalRegionScheduler().runAtFixedRate(
-                this,
-                task -> cleanupTask.run(),
-                initialDelayTicks,
-                periodTicks
+                20L * 60L,
+                20L * 60L * intervalMinutes,
+                new WorkstationCleanupTask(
+                        this,
+                        workstationBackend,
+                        lastSeenManager,
+                        inactiveDays
+                )
         );
     }
 
     /*
-     * ------------------------------------------------------------
      * Config defaults
-     * ------------------------------------------------------------
      */
-
     private void applyDefaults(FileConfiguration config) {
-        /*
-         * Global permission mode.
-         */
         config.addDefault("usePermissions", false);
 
-        /*
-         * Regular portable containers.
-         */
         config.addDefault("enableShulkerbox", true);
         config.addDefault("enableEnderChest", true);
         config.addDefault("enableCraftingTable", true);
-
-        /*
-         * Portable Paper menus.
-         */
         config.addDefault("enableSmithingTable", true);
         config.addDefault("enableStoneCutter", true);
         config.addDefault("enableGrindstone", true);
@@ -301,32 +303,14 @@ public final class LeafInventory extends JavaPlugin {
         config.addDefault("enableAnvil", false);
         config.addDefault("enableEnchantingTable", true);
 
-        /*
-         * Portable workstations.
-         */
         config.addDefault("enableFurnace", true);
         config.addDefault("enableBlastFurnace", true);
         config.addDefault("enableSmoker", true);
 
-        /*
-         * Legacy hidden-world workstation settings.
-         */
-        config.addDefault("workstation.worldName", "leafinventory_workstations");
-        config.addDefault("workstation.baseChunkX", 0);
-        config.addDefault("workstation.baseChunkZ", 0);
-        config.addDefault("workstation.baseY", 64);
-        config.addDefault("workstation.stepY", 2);
         config.addDefault("workstation.bypassPermission", "leafinventory.workstation.bypass");
+        config.addDefault("workstation.cleanup.inactiveDays", 30);
+        config.addDefault("workstation.cleanup.intervalMinutes", 60);
 
-        /*
-         * Cleanup settings.
-         */
-        config.addDefault("cleanup.inactiveDays", 30);
-        config.addDefault("cleanup.intervalMinutes", 60);
-
-        /*
-         * Large ender chest.
-         */
         config.addDefault("largeEnderChest.enabled", false);
         config.addDefault("largeEnderChest.permission", "leafinventory.enderchest.large");
         config.addDefault("largeEnderChest.rows", 6);
@@ -334,42 +318,27 @@ public final class LeafInventory extends JavaPlugin {
         config.addDefault("largeEnderChest.saveIntervalSeconds", 30);
         config.addDefault("largeEnderChest.title", "Large Ender Chest");
 
-        /*
-         * Large shulker box.
-         */
         config.addDefault("largeShulker.enabled", false);
         config.addDefault("largeShulker.rows", 6);
         config.addDefault("largeShulker.permissions.create", "leafinventory.shulkerbox.large.create");
         config.addDefault("largeShulker.permissions.open", "leafinventory.shulkerbox.large.open");
         config.addDefault("largeShulker.allowOpenWithoutPermission", true);
         config.addDefault("largeShulker.requireOwnerToOpen", false);
+        config.addDefault("largeShulker.saveIntervalSeconds", 30);
+        config.addDefault("largeShulker.title", "Large Shulker Box");
 
-        /*
-         * Large shulker placement lifecycle.
-         *
-         * These options are reserved for the next implementation stage.
-         */
         config.addDefault("largeShulker.placement.enabled", true);
         config.addDefault("largeShulker.placement.cancelVanillaOpen", true);
         config.addDefault("largeShulker.placement.preventPistonMove", true);
+        config.addDefault("largeShulker.placement.pistonDropInsteadOfCancel", true);
         config.addDefault("largeShulker.placement.handleExplosionDrop", true);
         config.addDefault("largeShulker.placement.blockHopperInteraction", true);
         config.addDefault("largeShulker.placement.convertDuplicatePlacedBlocksToVanilla", true);
-
-        /*
-         * Duplicate item handling.
-         */
-        config.addDefault("largeShulker.duplicateItemPolicy", "shared");
-        config.addDefault("largeShulker.saveIntervalSeconds", 30);
-        config.addDefault("largeShulker.title", "Large Shulker Box");
     }
 
     /*
-     * ------------------------------------------------------------
      * Platform checks
-     * ------------------------------------------------------------
      */
-
     private boolean isPaperServer() {
         try {
             Class.forName("org.bukkit.inventory.view.builder.InventoryViewBuilder");

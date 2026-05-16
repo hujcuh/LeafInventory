@@ -5,11 +5,22 @@ main: me.LeafPixel.LeafInventory.LeafInventory
 api-version: '26.1.2'
 folia-supported: true
 
+commands:
+  leafinventory:
+    description: "LeafInventory administration and diagnostics"
+    usage: "/leafinventory <status|save|largeshulker|largeender>"
+    aliases: [li]
+
 permissions:
+  leafinventory.admin:
+    description: "Allows using LeafInventory admin and diagnostic commands"
+    default: op
+
   leafinventory.*:
     description: "Grants access to all LeafInventory features"
     default: false
     children:
+      leafinventory.admin: true
       leafinventory.shulkerbox: true
       leafinventory.enderchest: true
       leafinventory.craftingtable: true

@@ -850,4 +850,34 @@ public final class LargeShulkerService {
                 1.2f
         );
     }
+    public int activeSessionCount() {
+        return sessionsByPlayer.size();
+    }
+
+    public boolean isShulkerActive(UUID shulkerId) {
+        return activeByShulker.containsKey(shulkerId);
+    }
+
+    public boolean forceUnlock(UUID shulkerId) {
+        UUID playerId = activeByShulker.remove(shulkerId);
+
+        if (playerId == null) {
+            return false;
+        }
+
+        sessionsByPlayer.remove(playerId);
+        return true;
+    }
+
+    public Map<String, UUID> placedSnapshot() {
+        return placedStore.snapshot();
+    }
+
+    public int placedCount() {
+        return placedStore.snapshot().size();
+    }
+
+    public void savePlacedNow() {
+        placedStore.saveNow();
+    }
 }

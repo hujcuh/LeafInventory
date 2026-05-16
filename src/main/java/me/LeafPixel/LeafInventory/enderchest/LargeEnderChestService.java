@@ -3,6 +3,7 @@ package me.LeafPixel.LeafInventory.enderchest;
 import io.papermc.paper.threadedregions.scheduler.ScheduledTask;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
+import org.bukkit.Material;
 import org.bukkit.Sound;
 import org.bukkit.SoundCategory;
 import org.bukkit.configuration.file.FileConfiguration;
@@ -213,5 +214,18 @@ public final class LargeEnderChestService {
 
     private static ItemStack cloneOrNull(ItemStack stack) {
         return stack == null ? null : stack.clone();
+    }
+    public int countExtraUsed(UUID uuid) {
+        ItemStack[] extra = store.getExtra(uuid);
+
+        int count = 0;
+
+        for (ItemStack item : extra) {
+            if (item != null && item.getType() != Material.AIR) {
+                count++;
+            }
+        }
+
+        return count;
     }
 }
