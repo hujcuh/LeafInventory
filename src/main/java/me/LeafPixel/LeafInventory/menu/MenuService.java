@@ -211,10 +211,15 @@ public final class MenuService {
         }
 
         InventoryView view = menuType.create(player);
+
+        if (view == null) {
+            plugin.getLogger().warning("Failed to create menu view for type: " + legacyType);
+            return;
+        }
+
         player.openInventory(view);
     }
 
-    @SuppressWarnings("null")
     private static void playEnderChestOpen(Player player) {
         player.playSound(
                 player,

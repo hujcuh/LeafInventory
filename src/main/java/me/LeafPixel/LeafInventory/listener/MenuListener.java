@@ -84,14 +84,19 @@ public final class MenuListener implements Listener {
      * RIGHT_CLICK_BLOCK is handled too, so the player does not accidentally place
      * or interact with the item when they intended to open the portable menu.
      */
-    @EventHandler(priority = EventPriority.NORMAL)
+    @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = false)
     public void onHandRightClick(PlayerInteractEvent event) {
         if (event.getHand() != EquipmentSlot.HAND) {
             return;
         }
 
-        Action action = event.getAction();
-        if (action != Action.RIGHT_CLICK_AIR && action != Action.RIGHT_CLICK_BLOCK) {
+        /*
+        * Only open portable menus when right-clicking air.
+        *
+        * RIGHT_CLICK_BLOCK must be left to vanilla so players can place
+        * ender chests, crafting tables, and other workstation blocks.
+        */
+        if (event.getAction() != Action.RIGHT_CLICK_AIR) {
             return;
         }
 
@@ -112,7 +117,7 @@ public final class MenuListener implements Listener {
             return;
         }
 
-        event.setCancelled(true);
+        event.setUseItemInHand(org.bukkit.event.Event.Result.DENY);
 
         Scheduler.runEntityLater(plugin, player, 1L, () -> menus.openFromItem(player, type));
     }
