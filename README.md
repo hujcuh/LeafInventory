@@ -45,13 +45,14 @@ Most features can be enabled or disabled in `config.yml` and can be permission-g
 
 ## 54-slot Large Ender Chest
 
-LeafInventory 4.x adds a virtual 54-slot ender chest.
+- LeafInventory 4.x adds a virtual 54-slot ender chest.
 
 ---
 
 ## 54-slot Large Shulker Box
 
-LeafInventory 4.x adds plugin-managed 54-slot large shulker boxes.
+- LeafInventory 4.x adds plugin-managed 54-slot large shulker boxes.
+- **Shift+Right-Click (empty hand on normal shulker):** Creates a bound 54-slot Large Shulker Box.
 
 ---
 
