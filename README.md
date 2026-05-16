@@ -1,37 +1,31 @@
 # LeafInventory
 
-LeafInventory is a Minecraft server plugin for Paper/Folia that provides portable inventory utilities and workstation access.
+LeafInventory is a Paper/Folia plugin that provides portable inventory utilities, virtual workstation access, a 54-slot large ender chest, and 54-slot large shulker boxes.
 
-It is a rebranded fork derived from [percyqaz/UltimateInventory](https://github.com/percyqaz/UltimateInventory).  
-This fork preserves the original MIT license and credits as required by the MIT license terms.
+This project is a rebranded fork derived from [percyqaz/UltimateInventory](https://github.com/percyqaz/UltimateInventory).  
+The original MIT license and credits are preserved.
 
 ---
 
 ## Compatibility
 
-LeafInventory is maintained in separate version lines.
-
 | LeafInventory version | Server target | Java | Status | Branch |
-| --- | --- | --- | --- | --- |
+|---|---|---|---|---|
 | 3.x | Paper/Folia 1.21.4 - 1.21.11 | Java 21+ | Maintenance | `legacy/1.21.x` |
-| 4.x | Paper/Folia 26.1.x | Java 25+ | Active development | `main` |
+| 4.x | Paper/Folia 26.1.x | Java 25+ | Beta / active development | `main` |
 
-### Which version should I use?
-
-- Use **LeafInventory 3.x** if your server runs Paper/Folia 1.21.4 - 1.21.11.
-- Use **LeafInventory 4.x** if your server runs Paper/Folia 26.1.x.
+Use **LeafInventory 3.x** for Paper/Folia 1.21.4 - 1.21.11.  
+Use **LeafInventory 4.x** for Paper/Folia 26.1.x.
 
 ---
 
 ## Features
 
-### Portable containers and workstations
+### Portable containers and menus
 
-LeafInventory allows players to open supported containers and workstations directly from their inventory or hand, without placing the block.
+Supported portable features:
 
-Supported features include:
-
-- Shulker boxes
+- Regular shulker boxes
 - Ender chests
 - Crafting tables
 - Smithing tables
@@ -45,34 +39,53 @@ Supported features include:
 - Blast furnaces
 - Smokers
 
-Most features are configurable and can be permission-gated.
+Most features can be enabled or disabled in `config.yml` and can be permission-gated.
 
 ---
 
-## 4.x Roadmap
+## 54-slot Large Ender Chest
 
-LeafInventory 4.x targets Paper/Folia 26.1.x and focuses on safer Folia-compatible internals.
+LeafInventory 4.x adds a virtual 54-slot ender chest.
 
-Planned 4.x features:
+---
 
-- Virtual workstation backend by default
-- 54-slot large ender chest
-  - Keeps vanilla ender chest compatibility
-  - Uses a virtual GUI
-  - First 27 slots may mirror the vanilla ender chest
-  - Extra 27 slots are plugin-managed
-- 54-slot large shulker box
-  - Data is bound to a persistent `shulkerId`
-  - The shulker item carries access through PersistentDataContainer
-  - Players without create permission may still open existing large shulker boxes, depending on config
-  - Placement lifecycle will be handled carefully
-  - Hopper interaction will be blocked initially for safety
+## 54-slot Large Shulker Box
+
+LeafInventory 4.x adds plugin-managed 54-slot large shulker boxes.
+
+---
+
+## Commands
+
+Main command:
+
+```text
+/leafinventory
+/li
+```
+
+Admin commands:
+
+```text
+/li status
+/li save
+/li largeshulker info
+/li largeshulker listplaced
+/li largeshulker unlock <shulkerId>
+/li largeender info [player]
+```
+
+Permission:
+
+```text
+leafinventory.admin
+```
 
 ---
 
 ## Permissions
 
-### General permissions
+General permissions:
 
 ```text
 leafinventory.shulkerbox
@@ -89,3 +102,29 @@ leafinventory.furnace
 leafinventory.blastfurnace
 leafinventory.smoker
 leafinventory.workstation.bypass
+```
+
+Large storage and admin permissions:
+
+```text
+leafinventory.enderchest.large
+leafinventory.shulkerbox.large.create
+leafinventory.shulkerbox.large.open
+leafinventory.admin
+```
+
+Wildcard:
+
+```text
+leafinventory.*
+```
+
+---
+
+## Known Limitations
+
+- Large shulker hopper automation is not supported yet.
+- Large shulker contents are plugin-managed and should not be treated as vanilla shulker NBT.
+- WorldEdit or other block-copying tools may create duplicate block shells; LeafInventory handles these conservatively.
+- 4.x is currently a beta/development line for Paper/Folia 26.1.x.
+
