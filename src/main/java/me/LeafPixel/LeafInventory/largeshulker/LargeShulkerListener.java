@@ -8,7 +8,6 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
-import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.InventoryAction;
 import org.bukkit.event.inventory.InventoryClickEvent;
@@ -24,10 +23,9 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
 
 /**
- * First-stage large shulker listener.
+ * Handles item-based large shulker opening/conversion.
  *
- * Handles item-based large shulker opening/conversion only.
- * Block placement lifecycle will be implemented in a later stage.
+ * Placed block lifecycle is handled by LargeShulkerBlockListener.
  */
 public final class LargeShulkerListener implements Listener {
 
@@ -66,11 +64,13 @@ public final class LargeShulkerListener implements Listener {
         }
 
         ClickType click = event.getClick();
+
         if (click != ClickType.RIGHT && click != ClickType.SHIFT_RIGHT) {
             return;
         }
 
         ItemStack item = event.getCurrentItem();
+
         if (!isSingleShulker(item)) {
             return;
         }
@@ -100,13 +100,7 @@ public final class LargeShulkerListener implements Listener {
             Scheduler.runEntityLater(plugin, player, 1L, () -> {
                 service.createAndOpenFromPlayerInventory(player, slot);
             });
-            return;
         }
-
-        /*
-         * Normal shulker + normal right-click:
-         * Do not cancel. Regular ShulkerListener handles it.
-         */
     }
 
     /**
@@ -116,6 +110,10 @@ public final class LargeShulkerListener implements Listener {
      * - Existing large shulker: open 54-slot GUI.
      * - Normal shulker + sneaking + create permission: create 54-slot shulker.
      * - Normal shulker + normal right-click: do nothing; regular ShulkerListener handles it.
+     *
+     * IMPORTANT:
+     * Only RIGHT_CLICK_AIR is handled here.
+     * RIGHT_CLICK_BLOCK is reserved for vanilla placement or LargeShulkerBlockListener.
      */
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = false)
     public void onHandRightClick(PlayerInteractEvent event) {
@@ -129,27 +127,20 @@ public final class LargeShulkerListener implements Listener {
             return;
         }
 
-        /*
-        * Only open/create large shulker from hand when right-clicking air.
-        *
-        * RIGHT_CLICK_BLOCK must be reserved for placement.
-        * The full large-shulker block lifecycle should be handled by
-        * BlockPlaceEvent / PlayerInteractEvent-on-block / BlockBreakEvent later.
-        */
         if (event.getAction() != Action.RIGHT_CLICK_AIR) {
             return;
         }
 
         ItemStack item = event.getItem();
+
         if (!isSingleShulker(item)) {
             return;
         }
 
         /*
-        * Existing large shulker:
-        * LargeShulker owns this air-right-click event.
-        */
-
+         * Existing large shulker:
+         * LargeShulker owns this air-right-click event.
+         */
         if (service.isLargeShulker(item)) {
             denyVanillaInteraction(event);
 
@@ -159,13 +150,16 @@ public final class LargeShulkerListener implements Listener {
             return;
         }
 
+        /*
+         * Normal shulker + sneaking + create permission:
+         * Convert/create as large shulker.
+         */
         if (player.isSneaking() && service.canCreate(player)) {
             denyVanillaInteraction(event);
 
             Scheduler.runEntity(plugin, player, () -> {
                 service.createAndOpenFromMainHand(player);
             });
-            return;
         }
     }
 
@@ -179,6 +173,7 @@ public final class LargeShulkerListener implements Listener {
         }
 
         LargeShulkerSession session = service.getSession(player.getUniqueId());
+
         if (session == null) {
             return;
         }
@@ -214,6 +209,7 @@ public final class LargeShulkerListener implements Listener {
         }
 
         LargeShulkerSession session = service.getSession(player.getUniqueId());
+
         if (session == null) {
             return;
         }

@@ -93,6 +93,7 @@ largeShulker:
     enabled: true
     cancelVanillaOpen: true
     preventPistonMove: true
+    pistonDropInsteadOfCancel: true
     handleExplosionDrop: true
     blockHopperInteraction: true
     convertDuplicatePlacedBlocksToVanilla: true

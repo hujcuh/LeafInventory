@@ -12,14 +12,14 @@ import org.bukkit.event.Event.Result;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
+import org.bukkit.event.block.Action;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockBurnEvent;
 import org.bukkit.event.block.BlockExplodeEvent;
 import org.bukkit.event.block.BlockFadeEvent;
-import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.block.BlockPistonExtendEvent;
 import org.bukkit.event.block.BlockPistonRetractEvent;
-import org.bukkit.event.block.Action;
+import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.event.inventory.InventoryMoveItemEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
@@ -29,12 +29,13 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.Iterator;
+import java.util.List;
 import java.util.UUID;
 
 /**
  * Handles placed large shulker block lifecycle.
  *
- * Important design:
+ * Design:
  * - The placed block is only an entry point / shell.
  * - Real 54-slot contents are stored by LargeShulkerStore using shulkerId.
  * - Vanilla shulker inventory must not be used as the source of truth.
@@ -81,15 +82,32 @@ public final class LargeShulkerBlockListener implements Listener {
             return;
         }
 
+        String currentLocationKey = LargeShulkerService.locationKey(block.getLocation());
+        String existingLocationKey = service.findPlacedLocationByShulkerId(shulkerId);
+
+        /*
+         * Duplicate placed block detection:
+         * If this shulkerId is already registered at another location, treat this
+         * placed block as a duplicate copy.
+         */
+        if (existingLocationKey != null && !existingLocationKey.equals(currentLocationKey)) {
+            if (convertDuplicatePlacedBlocksToVanilla()) {
+                service.convertBlockToVanilla(block);
+                event.getPlayer().sendMessage("§c检测到重复的大容量潜影盒方块，已转为普通潜影盒。");
+                return;
+            }
+
+            event.setCancelled(true);
+            event.getPlayer().sendMessage("§c检测到重复的大容量潜影盒方块，已阻止放置。");
+            return;
+        }
+
         if (!(block.getState() instanceof TileState tile)) {
             event.setCancelled(true);
             event.getPlayer().sendMessage("§c大容量潜影盒放置失败：无法写入方块数据。");
             return;
         }
 
-        /*
-         * Copy shulkerId/owner/rows/version/createdAt from item to block.
-         */
         service.copyItemPdcToBlock(item, tile);
 
         /*
@@ -123,6 +141,7 @@ public final class LargeShulkerBlockListener implements Listener {
         }
 
         Block block = event.getClickedBlock();
+
         if (block == null) {
             return;
         }
@@ -141,6 +160,25 @@ public final class LargeShulkerBlockListener implements Listener {
         }
 
         Player player = event.getPlayer();
+
+        /*
+         * Duplicate placed block detection:
+         * TileState says it is a large shulker, but placed index does not
+         * recognize this location as the valid one.
+         */
+        if (!service.isValidPlacedLocation(block.getLocation(), shulkerId)) {
+            event.setUseInteractedBlock(Result.DENY);
+            event.setUseItemInHand(Result.DENY);
+
+            if (convertDuplicatePlacedBlocksToVanilla()) {
+                service.convertBlockToVanilla(block);
+                player.sendMessage("§c检测到异常或重复的大容量潜影盒方块，已转为普通潜影盒。");
+            } else {
+                player.sendMessage("§c这个大容量潜影盒方块索引异常，已阻止打开。");
+            }
+
+            return;
+        }
 
         /*
          * Take over vanilla shulker opening.
@@ -181,20 +219,14 @@ public final class LargeShulkerBlockListener implements Listener {
         event.setCancelled(true);
         event.setExpToDrop(0);
 
-        ItemStack drop = service.createItemFromId(shulkerId, block.getType());
-
-        Location dropLocation = block.getLocation().clone().add(0.5, 0.5, 0.5);
-        World world = block.getWorld();
-
-        world.dropItemNaturally(dropLocation, drop);
-
-        service.removePlaced(block.getLocation());
-
-        block.setType(Material.AIR);
+        dropLargeShulkerBlock(block);
     }
 
     /**
      * Prevent piston moving large shulker blocks.
+     *
+     * If pistonDropInsteadOfCancel is enabled, simulate vanilla-like behavior:
+     * the large shulker is dropped as an item with the same shulkerId.
      */
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onPistonExtend(BlockPistonExtendEvent event) {
@@ -206,16 +238,37 @@ public final class LargeShulkerBlockListener implements Listener {
             return;
         }
 
+        boolean found = false;
+
         for (Block block : event.getBlocks()) {
             if (service.isLargeShulkerBlock(block)) {
-                event.setCancelled(true);
-                return;
+                found = true;
+                break;
+            }
+        }
+
+        if (!found) {
+            return;
+        }
+
+        event.setCancelled(true);
+
+        if (!pistonDropInsteadOfCancel()) {
+            return;
+        }
+
+        for (Block block : event.getBlocks()) {
+            if (service.isLargeShulkerBlock(block)) {
+                dropLargeShulkerBlock(block);
             }
         }
     }
 
     /**
      * Prevent piston pulling large shulker blocks.
+     *
+     * If pistonDropInsteadOfCancel is enabled, simulate vanilla-like behavior:
+     * the large shulker is dropped as an item with the same shulkerId.
      */
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onPistonRetract(BlockPistonRetractEvent event) {
@@ -227,10 +280,28 @@ public final class LargeShulkerBlockListener implements Listener {
             return;
         }
 
+        boolean found = false;
+
         for (Block block : event.getBlocks()) {
             if (service.isLargeShulkerBlock(block)) {
-                event.setCancelled(true);
-                return;
+                found = true;
+                break;
+            }
+        }
+
+        if (!found) {
+            return;
+        }
+
+        event.setCancelled(true);
+
+        if (!pistonDropInsteadOfCancel()) {
+            return;
+        }
+
+        for (Block block : event.getBlocks()) {
+            if (service.isLargeShulkerBlock(block)) {
+                dropLargeShulkerBlock(block);
             }
         }
     }
@@ -271,6 +342,8 @@ public final class LargeShulkerBlockListener implements Listener {
 
     /**
      * Prevent hopper interaction with large shulker blocks.
+     *
+     * Custom hopper logic is intentionally not implemented yet.
      */
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onInventoryMoveItem(InventoryMoveItemEvent event) {
@@ -308,7 +381,7 @@ public final class LargeShulkerBlockListener implements Listener {
         }
     }
 
-    private void handleExplosionBlocks(java.util.List<Block> blocks) {
+    private void handleExplosionBlocks(List<Block> blocks) {
         Iterator<Block> iterator = blocks.iterator();
 
         while (iterator.hasNext()) {
@@ -326,15 +399,28 @@ public final class LargeShulkerBlockListener implements Listener {
 
             iterator.remove();
 
-            ItemStack drop = service.createItemFromId(shulkerId, block.getType());
-            Location dropLocation = block.getLocation().clone().add(0.5, 0.5, 0.5);
-
-            block.getWorld().dropItemNaturally(dropLocation, drop);
-
-            service.removePlaced(block.getLocation());
-
-            block.setType(Material.AIR);
+            dropLargeShulkerBlock(block);
         }
+    }
+
+    private void dropLargeShulkerBlock(Block block) {
+        UUID shulkerId = service.getShulkerId(block);
+
+        if (shulkerId == null) {
+            return;
+        }
+
+        Material type = block.getType();
+        ItemStack drop = service.createItemFromId(shulkerId, type);
+
+        Location dropLocation = block.getLocation().clone().add(0.5, 0.5, 0.5);
+        World world = block.getWorld();
+
+        world.dropItemNaturally(dropLocation, drop);
+
+        service.removePlaced(block.getLocation());
+
+        block.setType(Material.AIR);
     }
 
     private boolean isLargeShulkerInventory(InventoryHolder holder) {
@@ -357,11 +443,22 @@ public final class LargeShulkerBlockListener implements Listener {
         return plugin.getConfig().getBoolean("largeShulker.placement.preventPistonMove", true);
     }
 
+    private boolean pistonDropInsteadOfCancel() {
+        return plugin.getConfig().getBoolean("largeShulker.placement.pistonDropInsteadOfCancel", true);
+    }
+
     private boolean handleExplosionDrop() {
         return plugin.getConfig().getBoolean("largeShulker.placement.handleExplosionDrop", true);
     }
 
     private boolean blockHopperInteraction() {
         return plugin.getConfig().getBoolean("largeShulker.placement.blockHopperInteraction", true);
+    }
+
+    private boolean convertDuplicatePlacedBlocksToVanilla() {
+        return plugin.getConfig().getBoolean(
+                "largeShulker.placement.convertDuplicatePlacedBlocksToVanilla",
+                true
+        );
     }
 }
