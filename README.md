@@ -127,5 +127,5 @@ leafinventory.*
 - Large shulker hopper automation is not supported yet.
 - Large shulker contents are plugin-managed and should not be treated as vanilla shulker NBT.
 - WorldEdit or other block-copying tools may create duplicate block shells; LeafInventory handles these conservatively.
-- 4.x is currently a beta/development line for Paper/Folia 26.1.x.
+- The high‑capacity shulker box cannot preview its contents.
 
